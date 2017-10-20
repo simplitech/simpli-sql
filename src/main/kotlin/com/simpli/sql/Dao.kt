@@ -14,7 +14,7 @@ import java.util.logging.Logger
  *
  * @author gil
  */
-class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
+open class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
 
     /**
      * to insert or make an update
@@ -23,7 +23,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * @param objStatement variables that will replace the ?
      * @return database response
      */
-    protected fun update(strStatement: String, vararg objStatement: Any): GenericResult {
+    protected fun update(strStatement: String, vararg objStatement: Any?): GenericResult {
 
         var statem: PreparedStatement? = null
         val genResult = GenericResult()
@@ -60,7 +60,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * @param objStatement variables that will replace the ?
      * @return constructed object
     </T> */
-    protected fun <T> select(strStatement: String, callback: (rs: ResultSet) -> T, vararg objStatement: Any): T {
+    protected fun <T> select(strStatement: String, callback: (rs: ResultSet) -> T, vararg objStatement: Any?): T {
 
         var statem: PreparedStatement? = null
         var rs: ResultSet? = null
@@ -94,7 +94,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * @param objStatement variables that will replace the ?
      * @return constructed list
     </T> */
-    protected fun <T> selectList(strStatement: String, callback: (rs: ResultSet) -> T, vararg objStatement: Any): List<T> {
+    protected fun <T> selectList(strStatement: String, callback: (rs: ResultSet) -> T, vararg objStatement: Any?): MutableList<T> {
 
         return select(strStatement, { rs: ResultSet ->
             val result = LinkedList<T>()
@@ -118,7 +118,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * @param objStatement variables that will replace the ?
      * @return constructed object
     </T> */
-    protected fun <T> selectOne(strStatement: String, callback: (rs: ResultSet) -> T, vararg objStatement: Any): T? {
+    protected fun <T> selectOne(strStatement: String, callback: (rs: ResultSet) -> T, vararg objStatement: Any?): T? {
 
         return select(strStatement, { rs: ResultSet ->
             if (rs.next()) {
@@ -135,35 +135,35 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * @param objStatement variables that will replace the ?
      * @return true if there is data in the query
      */
-    protected fun exist(strStatement: String, vararg objStatement: Any): Boolean {
+    protected fun exist(strStatement: String, vararg objStatement: Any?): Boolean {
         return select(strStatement, { rs: ResultSet -> rs.next() }, *objStatement) ?: false
     }
 
-    protected fun selectFirstInt(strStatement: String, vararg objStatement: Any): Int? {
+    protected fun selectFirstInt(strStatement: String, vararg objStatement: Any?): Int? {
         return selectOne(strStatement, { rs: ResultSet -> rs.getIntOrNull(1) }, *objStatement)
     }
 
-    protected fun selectFirstLong(strStatement: String, vararg objStatement: Any): Long? {
+    protected fun selectFirstLong(strStatement: String, vararg objStatement: Any?): Long? {
         return selectOne(strStatement, { rs: ResultSet -> rs.getLongOrNull(1) }, *objStatement)
     }
 
-    protected fun selectFirstDouble(strStatement: String, vararg objStatement: Any): Double? {
+    protected fun selectFirstDouble(strStatement: String, vararg objStatement: Any?): Double? {
         return selectOne(strStatement, { rs: ResultSet -> rs.getDoubleOrNull(1) }, *objStatement)
     }
 
-    protected fun selectFirstString(strStatement: String, vararg objStatement: Any): String? {
+    protected fun selectFirstString(strStatement: String, vararg objStatement: Any?): String? {
         return selectOne(strStatement, { rs: ResultSet -> rs.getString(1) }, *objStatement)
     }
 
-    protected fun selectFirstDate(strStatement: String, vararg objStatement: Any): Date? {
+    protected fun selectFirstDate(strStatement: String, vararg objStatement: Any?): Date? {
         return selectOne(strStatement, { rs: ResultSet -> rs.getTimestamp(1) }, *objStatement)
     }
 
-    protected fun selectFirstBoolean(strStatement: String, vararg objStatement: Any): Boolean? {
+    protected fun selectFirstBoolean(strStatement: String, vararg objStatement: Any?): Boolean? {
         return selectOne(strStatement, { rs: ResultSet -> rs.getBooleanOrNull(1) }, *objStatement)
     }
 
-    protected fun insertWithMap(tablename: String, columnNamesAndValues: Map<String, Any>): GenericResult {
+    protected fun insertWithMap(tablename: String, columnNamesAndValues: Map<String, Any?>): GenericResult {
         val columnNames = columnNamesAndValues.keys.toTypedArray()
 
         return update("INSERT INTO "
@@ -175,7 +175,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
                 *columnNamesAndValues.values.toTypedArray())
     }
 
-    protected fun updateWithMap(tablename: String, columnNamesAndValues: Map<String, Any>, clause: String, vararg params: Any): GenericResult {
+    protected fun updateWithMap(tablename: String, columnNamesAndValues: Map<String, Any?>, clause: String, vararg params: Any): GenericResult {
         val columnNames = columnNamesAndValues.keys.toTypedArray()
         val values = ArrayList(columnNamesAndValues.values)
         values.addAll(Arrays.asList(*params))
@@ -199,7 +199,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * prepare the statement; (3) coudn't understand the object
      */
     @Throws(SQLException::class)
-    protected fun prepareUpdate(con: Connection, strStatement: String, vararg objStatement: Any): PreparedStatement {
+    protected fun prepareUpdate(con: Connection, strStatement: String, vararg objStatement: Any?): PreparedStatement {
         val statem = con.prepareStatement(strStatement, Statement.RETURN_GENERATED_KEYS)
 
         var i = 1
@@ -228,7 +228,7 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
      * prepare the statement; (3) coudn't understand the object
      */
     @Throws(SQLException::class)
-    protected fun prepareSelect(con: Connection, strStatement: String, vararg objStatement: Any): PreparedStatement {
+    protected fun prepareSelect(con: Connection, strStatement: String, vararg objStatement: Any?): PreparedStatement {
         val statem = con.prepareStatement(strStatement)
 
         var i = 1
@@ -360,11 +360,11 @@ class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
     }
 
     companion object {
-        fun updateForTest(con: Connection, strStatement: String, vararg objStatement: Any): GenericResult {
+        fun updateForTest(con: Connection, strStatement: String, vararg objStatement: Any?): GenericResult {
             return Dao(con, EnglishLanguage()).update(strStatement, *objStatement)
         }
 
-        fun existForTest(con: Connection, strStatement: String, vararg objStatement: Any): Boolean {
+        fun existForTest(con: Connection, strStatement: String, vararg objStatement: Any?): Boolean {
             return Dao(con, EnglishLanguage()).exist(strStatement, *objStatement)
         }
     }

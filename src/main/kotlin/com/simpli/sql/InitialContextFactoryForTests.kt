@@ -14,6 +14,10 @@ class InitialContextFactoryForTests : InitialContextFactory {
         return context
     }
 
+    fun getInitialContext(): Context? {
+        return context
+    }
+
     companion object {
 
         private var context: Context? = null
