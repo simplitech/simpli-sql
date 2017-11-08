@@ -37,8 +37,8 @@ open class DaoTest(dsName: String, databaseName: String) {
             val ctx = InitialContextFactoryForTests().getInitialContext()
             InitialContextFactoryForTests.bind("java:/comp/env", ctx!!)
 
-            dataSource.connection.autoCommit = false
             currentConnection = dataSource.connection
+            currentConnection?.autoCommit = false
 
         } catch (ex: NamingException) {
             Logger.getLogger(DaoTest::class.java.name).log(Level.SEVERE, null, ex)
