@@ -1,4 +1,4 @@
-group 'com.simpli.sql'
+group 'br.com.simpli.sql'
 version '1.0.0'
 
 apply plugin: 'maven-publish'
@@ -27,9 +27,9 @@ dependencies {
     compile group: 'commons-pool', name: 'commons-pool', version: '1.6'
     compile group: 'commons-collections', name: 'commons-collections', version: '3.2.1'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
-    compile "com.simpli.model:simpli-model:1.0.0"
     compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.6'
     compile group: 'junit', name: 'junit', version: '4.12'
+    compile project(path: ':simpli-model')
 }
 
 compileKotlin {

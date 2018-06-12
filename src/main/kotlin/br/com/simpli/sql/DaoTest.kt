@@ -1,4 +1,4 @@
-package com.simpli.sql
+package br.com.simpli.sql
 
 import com.mysql.jdbc.jdbc2.optional.MysqlConnectionPoolDataSource
 import org.junit.After

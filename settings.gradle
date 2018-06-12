@@ -1,2 +1,3 @@
-rootProject.name = 'simpli-sql'
+include ':simpli-model'
+project(':simpli-model').projectDir = new File('../simpli-model')
 

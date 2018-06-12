@@ -1,8 +1,8 @@
-package com.simpli.sql
+package br.com.simpli.sql
 
-import com.simpli.model.EnglishLanguage
-import com.simpli.model.LanguageHolder
-import com.simpli.model.RespException
+import  br.com.simpli.model.EnglishLanguage
+import  br.com.simpli.model.LanguageHolder
+import  br.com.simpli.model.RespException
 import java.sql.*
 import java.util.*
 import java.util.Date
@@ -64,7 +64,7 @@ open class Dao(protected var con: Connection, protected var lang: LanguageHolder
 
         var statem: PreparedStatement? = null
         var rs: ResultSet? = null
-        var result: T? = null
+        var result: T?
 
         try {
             statem = prepareSelect(con, strStatement, *objStatement)
@@ -136,7 +136,7 @@ open class Dao(protected var con: Connection, protected var lang: LanguageHolder
      * @return true if there is data in the query
      */
     protected fun exist(strStatement: String, vararg objStatement: Any?): Boolean {
-        return select(strStatement, { rs: ResultSet -> rs.next() }, *objStatement) ?: false
+        return select(strStatement, { rs: ResultSet -> rs.next() }, *objStatement)
     }
 
     protected fun selectFirstInt(strStatement: String, vararg objStatement: Any?): Int? {

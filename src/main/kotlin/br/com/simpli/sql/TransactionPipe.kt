@@ -1,7 +1,7 @@
-package com.simpli.sql
+package br.com.simpli.sql
 
-import com.simpli.model.EnglishLanguage
-import com.simpli.model.RespException
+import  br.com.simpli.model.EnglishLanguage
+import  br.com.simpli.model.RespException
 import java.sql.Connection
 import java.sql.SQLException
 import java.util.logging.Level
@@ -82,11 +82,9 @@ class TransactionPipe(dsName: String) {
         }
 
         fun finish(con: Connection?) {
-            var con = con
             if (con != null) {
                 try {
                     con.close()
-                    con = null
                 } catch (ex: SQLException) {
                     Logger.getLogger(TransactionPipe::class.java.name).log(Level.SEVERE, ex.message, ex)
                 }

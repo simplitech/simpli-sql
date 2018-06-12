@@ -1,4 +1,4 @@
-package com.simpli.sql
+package br.com.simpli.sql
 
 import java.sql.ResultSet
 import java.sql.SQLException
