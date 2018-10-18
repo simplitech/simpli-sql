@@ -1,23 +1,26 @@
-group 'br.com.simpli.sql'
+group 'br.com.simpli'
 version '1.0.0'
 
-apply plugin: 'maven-publish'
+apply plugin: 'maven'
 apply plugin: 'kotlin'
+apply plugin: 'org.jetbrains.dokka'
+apply plugin: 'signing'
 
 buildscript {
-    ext.kotlin_version = '1.1.51'
+    ext.kotlin_version = '1.2.31'
 
     repositories {
         mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.dokka:dokka-gradle-plugin:0.9.9"
     }
 }
 
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 dependencies {
@@ -29,20 +32,73 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
     compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.6'
     compile group: 'junit', name: 'junit', version: '4.12'
-    compile project(path: ':simpli-model')
+    compile "br.com.simpli:simpli-model:1.0.0"
 }
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+
+task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
+    outputFormat = 'javadoc'
+    outputDirectory = "$buildDir/javadoc"
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    classifier = 'javadoc'
+    from "$buildDir/javadoc"
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2') {
+                authentication(userName: ossUser, password: ossPassword)
+            }
+
+            pom.project {
+                name 'Simpli SQL'
+                description 'An SQL connector from Simpli.'
+                url 'https://github.com/simplitech/simpli-sql'
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'joao.lippi'
+                        name 'Joao Pedro Lippi'
+                        email 'joao.lippi@simpli.com.br'
+                    }
+                }
+                scm {
+                    connection 'scm:git:git://github.com/simplitech/simpli-sql.git'
+                    developerConnection 'scm:git:ssh://github.com/simplitech/simpli-sql.git'
+                    url 'https://github.com/simplitech/simpli-sql'
+                }
+            }
         }
     }
+}
+
+dokka {
+    outputFormat = 'javadoc'
+    outputDirectory = "$buildDir/javadoc"
 }
