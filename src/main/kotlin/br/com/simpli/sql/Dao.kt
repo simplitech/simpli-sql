@@ -1,11 +1,14 @@
 package br.com.simpli.sql
 
-import  br.com.simpli.model.EnglishLanguage
-import  br.com.simpli.model.LanguageHolder
-import  br.com.simpli.model.RespException
-import java.sql.*
+import br.com.simpli.model.EnglishLanguage
+import br.com.simpli.model.LanguageHolder
+import br.com.simpli.model.RespException
+import java.sql.Connection
+import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.sql.SQLException
+import java.sql.Statement
 import java.util.*
-import java.util.Date
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -30,7 +33,6 @@ open class Dao(protected var con: Connection, protected var lang: LanguageHolder
         var keys: ResultSet? = null
         try {
             statem = prepareUpdate(con, strStatement, *objStatement)
-            Logger.getLogger(Dao::class.java.name).log(Level.INFO, statem.toString())
             genResult.affectedRows = statem.executeUpdate()
 
             keys = statem.generatedKeys
@@ -40,6 +42,7 @@ open class Dao(protected var con: Connection, protected var lang: LanguageHolder
             }
             closeStatementAndResult(statem, keys)
         } catch (ex: Exception) {
+            Logger.getLogger(Dao::class.java.name).log(Level.INFO, statem.toString())
             closeStatementAndResult(statem, keys)
             val re = RespException(lang.unexpectedError())
             re.initCause(ex)
@@ -68,12 +71,12 @@ open class Dao(protected var con: Connection, protected var lang: LanguageHolder
 
         try {
             statem = prepareSelect(con, strStatement, *objStatement)
-            Logger.getLogger(Dao::class.java.name).log(Level.INFO, statem.toString())
             rs = statem.executeQuery()
 
             result = callback(rs)
             closeStatementAndResult(statem, rs)
         } catch (ex: Exception) {
+            Logger.getLogger(Dao::class.java.name).log(Level.INFO, statem.toString())
             closeStatementAndResult(statem, rs)
             val re = RespException(lang.unexpectedError())
             re.initCause(ex)
