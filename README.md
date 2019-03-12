@@ -42,12 +42,67 @@ class MyDao(con: Connection) : Dao(con, EnglishLanguage()) {
 
 ## Select
 ```kotlin
-val myQuery = this.q.select("mycolumn").from("mytable").whereEq("myothercolumn", 2)
+val myQuery = Query()
+    .select("mycolumn")
+    .from("mytable")
+    .innerJoin("othertable", "idOtherTableFk", "idOtherTablePk")
+    .whereEq("myothercolumn", 2) // 'where' methods adds WHERE or AND (if not the first)
+    .where(Query()
+        .orEq("columito", 5) // 'or' or 'and' methods adds OR/AND or nothing (if the first)
+        .orNull("nulito"))
+        
 val mycolumnList = this.getStringList(myQuery)
+
+/* 
+query translated to:
+SELECT mycolumn
+FROM mytable
+INNER JOIN othertable ON idOtherTableFk = idOtherTablePk
+WHERE myothercolumn = 2
+AND (
+    columito = 5
+    OR nulito IS NULL
+)
+*/
 ```
 
 ## Insert
 ```kotlin
-val myQuery = this.q.insertInto("mytable").insertValues("mycolumn" to "thenewvalue", "myothercolumn" to 5)
+val myQuery = Query().insertInto("mytable").insertValues("mycolumn" to "thenewvalue", "myothercolumn" to 5)
 val newId = this.execute(myQuery).key
+```
+
+## Update
+```kotlin
+val myQuery = Query().updateTable("mytable")
+    .updateSet("mycolumn" to "thenewvalue", "myothercolumn" to 5)
+    .whereGt("myothercolumn", 2)
+val numOfRowsAffected = this.execute(myQuery).affectedRows
+```
+
+## Other methods
+
+### Raw
+```kotlin
+Query.raw("anything here ?, got it?", 3, 7)
+// output:
+// anything here 3, got it7
+// it also put spaces in the end
+```
+
+### Concat
+```kotlin
+val q1 = Query().raw("hey")
+val q2 = Query().raw("jude")
+val q3 = Query().raw("nananananana")
+q1.concat(q2, q3)
+// output:
+// hey jude nananananana
+```
+
+### OddText
+```kotlin
+Query().oddText(3, "mama", ",")
+// output:
+// mama,mama,mama
 ```
