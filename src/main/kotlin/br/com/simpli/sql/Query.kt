@@ -1,6 +1,7 @@
 package br.com.simpli.sql
 
 import java.util.*
+
 /**
  * A Query Builder
  *
@@ -8,10 +9,18 @@ import java.util.*
  */
 open class Query {
 
+
     var strSt = ""
         private set
 
     val paramsSt = ArrayList<Any?>()
+
+    constructor()
+
+    constructor(str: String?, vararg params: Any?) {
+        raw(str, *params)
+    }
+
 
     fun raw(str: String?, vararg params: Any?) : Query {
         str?.let {
@@ -31,6 +40,17 @@ open class Query {
     }
 
     fun oddText(size: Int, text: String, separator: String) = List(size) { text }.toTypedArray().joinToString(separator)
+
+    fun fieldsQuestionsAndParams(vararg value: Pair<String, Any?>): List<FieldQuestionAndParams> {
+        return value.map {
+            if (it.second is Query) {
+                val query = it.second as Query
+                FieldQuestionAndParams(it.first, query.strSt, query.paramsSt)
+            } else {
+                FieldQuestionAndParams(it.first, "?", arrayListOf(it.second))
+            }
+        }
+    }
 
     fun selectRaw(str: String?, vararg params: Any?) = raw("SELECT $str", *params)
     fun selectAll() = selectRaw("*")
@@ -112,6 +132,11 @@ open class Query {
     fun orBetween(column: String, p1: Any, p2: Any) = or("$column BETWEEN ? AND ?", p1, p2)
     fun havingBetween(column: String, p1: Any, p2: Any) = having("$column BETWEEN ? AND ?", p1, p2)
 
+    fun wherLike(column: String, param: Any) = where("$column LIKE ?", param)
+    fun andLike(column: String, param: Any) = and("$column LIKE ?", param)
+    fun orLike(column: String, param: Any) = or("$column LIKE ?", param)
+    fun havingLike(column: String, param: Any) = having("$column LIKE ?", param)
+
     fun whereIn(column: String, vararg param: Any?) = where("$column IN (${oddText(param.size, "?", ",")})", *param)
     fun andIn(column: String, vararg param: Any?) = and("$column IN (${oddText(param.size, "?", ",")})", *param)
     fun orIn(column: String, vararg param: Any?) = or("$column IN (${oddText(param.size, "?", ",")})", *param)
@@ -124,6 +149,7 @@ open class Query {
 
     fun orderByRaw(str: String?, vararg params: Any?) = raw("ORDER BY $str", *params)
     fun orderBy(column: String, order: String) = orderByRaw("$column $order")
+    fun orderByAsc(column: String, asc: Boolean?) = orderBy(column, if (asc == true) "ASC" else "DESC")
 
     fun groupByRaw(str: String?, vararg params: Any?) = raw("GROUP BY $str", *params)
     fun groupBy(vararg columns: String) = groupByRaw(columns.joinToString())
@@ -133,20 +159,26 @@ open class Query {
     fun insertInto(str: String, vararg params: Any?) = raw("INSERT INTO $str", *params)
 
     fun insertValues(vararg value: Pair<String, Any?>): Query {
-        val valuesMap = mapOf(*value)
-        return raw("(${
-        valuesMap.keys.toTypedArray().joinToString(",")}) VALUES (${
-        oddText(value.size, "?", ",")})",
-                *valuesMap.values.toTypedArray())
+        val processed = fieldsQuestionsAndParams(*value)
+        val params = ArrayList<Any?>()
+        processed.forEach{ params.addAll(it.params) }
+
+        return raw("(${processed.map{ it.field }.joinToString(",")}) VALUES (${processed.map{ it.question }.joinToString(",")})",
+                *params.toTypedArray())
     }
 
     fun updateTable(str: String, vararg params: Any?) = raw("UPDATE $str", *params)
 
     fun updateSet(vararg value: Pair<String, Any?>): Query {
-        val valuesMap = mapOf(*value)
-        return raw("SET ${valuesMap.map { "${it.key} = ?" }.toTypedArray().joinToString(", ")}",
-                *valuesMap.values.toTypedArray())
+        val processed = fieldsQuestionsAndParams(*value)
+        val params = ArrayList<Any?>()
+        processed.forEach{ params.addAll(it.params) }
+
+        return raw("SET ${processed.map { "${it.field} = ${it.question}" }.joinToString(", ")}",
+                *params.toTypedArray())
     }
 
-    fun delete(str: String, vararg params: Any?) = raw("DELETE $str", *params)
+    fun deleteFrom(str: String, vararg params: Any?) = raw("DELETE FROM $str", *params)
+
+    class FieldQuestionAndParams(val field: String, val question: String, val params: List<Any?>)
 }
