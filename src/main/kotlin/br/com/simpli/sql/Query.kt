@@ -167,6 +167,8 @@ open class Query {
                 *params.toTypedArray())
     }
 
+    fun insertValues(value: Map<String, Any>) = insertValues(*value.toList().toTypedArray())
+
     fun updateTable(str: String, vararg params: Any?) = raw("UPDATE $str", *params)
 
     fun updateSet(vararg value: Pair<String, Any?>): Query {
@@ -177,6 +179,8 @@ open class Query {
         return raw("SET ${processed.map { "${it.field} = ${it.question}" }.joinToString(", ")}",
                 *params.toTypedArray())
     }
+
+    fun updateSet(value: Map<String, Any>) = updateSet(*value.toList().toTypedArray())
 
     fun deleteFrom(str: String, vararg params: Any?) = raw("DELETE FROM $str", *params)
 
