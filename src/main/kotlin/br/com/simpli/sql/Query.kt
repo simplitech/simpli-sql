@@ -149,7 +149,7 @@ open class Query {
 
     fun orderByRaw(str: String?, vararg params: Any?) = raw("ORDER BY $str", *params)
     fun orderBy(column: String, order: String) = orderByRaw("$column $order")
-    fun orderByAsc(column: String, asc: Boolean?) = orderBy(column, if (asc == true) "ASC" else "DESC")
+    fun orderByAsc(column: String, asc: Boolean? = true) = orderBy(column, if (asc != false) "ASC" else "DESC")
 
     fun groupByRaw(str: String?, vararg params: Any?) = raw("GROUP BY $str", *params)
     fun groupBy(vararg columns: String) = groupByRaw(columns.joinToString())
