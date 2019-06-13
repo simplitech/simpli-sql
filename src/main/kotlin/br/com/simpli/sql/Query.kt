@@ -132,7 +132,7 @@ open class Query {
     fun orBetween(column: String, p1: Any, p2: Any) = or("$column BETWEEN ? AND ?", p1, p2)
     fun havingBetween(column: String, p1: Any, p2: Any) = having("$column BETWEEN ? AND ?", p1, p2)
 
-    fun wherLike(column: String, param: Any) = where("$column LIKE ?", param)
+    fun whereLike(column: String, param: Any) = where("$column LIKE ?", param)
     fun andLike(column: String, param: Any) = and("$column LIKE ?", param)
     fun orLike(column: String, param: Any) = or("$column LIKE ?", param)
     fun havingLike(column: String, param: Any) = having("$column LIKE ?", param)
@@ -167,7 +167,7 @@ open class Query {
                 *params.toTypedArray())
     }
 
-    fun insertValues(value: Map<String, Any>) = insertValues(*value.toList().toTypedArray())
+    fun insertValues(value: Map<String, Any?>) = insertValues(*value.toList().toTypedArray())
 
     fun updateTable(str: String, vararg params: Any?) = raw("UPDATE $str", *params)
 
@@ -180,7 +180,7 @@ open class Query {
                 *params.toTypedArray())
     }
 
-    fun updateSet(value: Map<String, Any>) = updateSet(*value.toList().toTypedArray())
+    fun updateSet(value: Map<String, Any?>) = updateSet(*value.toList().toTypedArray())
 
     fun deleteFrom(str: String, vararg params: Any?) = raw("DELETE FROM $str", *params)
 
