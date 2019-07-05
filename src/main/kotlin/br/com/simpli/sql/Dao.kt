@@ -17,6 +17,7 @@ import java.util.logging.Logger
  *
  * @author gil
  */
+@Deprecated("Use a Connector")
 open class Dao(protected var con: Connection, protected var lang: LanguageHolder) {
 
     protected fun execute(query: Query): GenericResult {
