@@ -14,6 +14,7 @@ import javax.sql.DataSource
  *
  * @author gil
  */
+@Deprecated("Use ReadConPipe or TransacConPipe")
 open class ConnectionPipe(dsName: String, val autoCommit: Boolean = true) {
 
     private var ds: DataSource? = null
