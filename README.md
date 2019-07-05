@@ -1,42 +1,43 @@
+<p align="center">    
+  <img width="256" height="256" src="./logo.png?raw=true" alt="Simpli"/>    
+</p> 
+
 # simpli-sql
 Kotlin and Java tools that makes SQL connections easier and don't use ORM
 
 ## Install
 **Gradle**
 ```
-compile group: 'br.com.simpli', name: 'simpli-sql', version: '2.0.0'
+compile group: 'br.com.simpli', name: 'simpli-sql', version: '3.0.0'
 ```
 **Maven**
 ```xml
 <dependency>
   <groupId>br.com.simpli</groupId>
   <artifactId>simpli-sql</artifactId>
-  <version>2.0.0</version>
+  <version>3.0.0</version>
 </dependency>
 ```
 
-## Get a connection
+## Get a transactional connector to read and write
 ```kotlin
-val conPipe = ConnectionPipe("jdbc/datasourceName")
-
-conPipe.handle { con ->
-  // do something with the connection inside this scope
-}
-```
-
-## Get a transactional connection
-```kotlin
-val transacPipe = TransactionPipe("jdbc/datasourceName")
+val transacPipe = TransacConPipe("jdbc/datasourceName")
 
 transacPipe.handle { con ->
-  // if you throw an exception it will make a rollback of all changes
+  val num = con.getFirstInt(Query("SELECT COUNT(*) FROM table"))
+  con.execute(Query("UPDATE table_count SET num = ? ", num))
+  // all good!
 }
 ```
 
-## Create a Data Access Object
+## Get a read-only connector, to make sure you will not try to write accidentally
 ```kotlin
-class MyDao(con: Connection) : Dao(con, EnglishLanguage()) {
-  // put all your database methods here
+val conPipe = ReadConPipe("jdbc/datasourceName")
+
+conPipe.handle { con ->
+  val num = con.getFirstInt(Query("SELECT COUNT(*) FROM table"))
+  con.execute(Query("UPDATE table_count SET num = ? ", num))
+  // ⚠ Exception: You can't update using a read connection
 }
 ```
 
@@ -51,7 +52,7 @@ val myQuery = Query()
         .orEq("columito", 5) // 'or' or 'and' methods adds OR/AND or nothing (if the first)
         .orNull("nulito"))
         
-val mycolumnList = this.getStringList(myQuery)
+val mycolumnList = con.getStringList(myQuery)
 
 /* 
 query translated to:
@@ -65,11 +66,12 @@ AND (
 )
 */
 ```
+You can also use: `selectRaw`, `selectAll`, `count`, `countRaw`, `countAll`, `innerJoinRaw`, `leftjoin`, `leftJoinRaw`, `and`, `or`, `having`, `orderBy`, `groupBy`, `limit` 
 
 ## Insert
 ```kotlin
 val myQuery = Query().insertInto("mytable").insertValues("mycolumn" to "thenewvalue", "myothercolumn" to 5)
-val newId = this.execute(myQuery).key
+val newId = con.execute(myQuery).key
 ```
 
 ## Update
@@ -77,7 +79,7 @@ val newId = this.execute(myQuery).key
 val myQuery = Query().updateTable("mytable")
     .updateSet("mycolumn" to "thenewvalue", "myothercolumn" to 5)
     .whereGt("myothercolumn", 2)
-val numOfRowsAffected = this.execute(myQuery).affectedRows
+val numOfRowsAffected = con.execute(myQuery).affectedRows
 ```
 
 ## Other methods
@@ -88,6 +90,9 @@ Query.raw("anything here ?, got it?", 3, 7)
 // output:
 // anything here 3, got it7
 // it also put spaces in the end
+
+// or you can simply:
+Query("this is a raw shortcut ?", 4)
 ```
 
 ### Concat
