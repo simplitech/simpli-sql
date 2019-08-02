@@ -59,7 +59,7 @@ abstract class AbstractConPipe(dsName: String) {
     }
 
     open fun commit(con: Connection?) {
-        if (con != null) {
+        if (con != null && !con.autoCommit) {
             try {
                 con.commit()
             } catch (ex: SQLException) {
@@ -70,7 +70,7 @@ abstract class AbstractConPipe(dsName: String) {
     }
 
     open fun rollback(con: Connection?) {
-        if (con != null) {
+        if (con != null && !con.autoCommit) {
             try {
                 con.rollback()
             } catch (ex: SQLException) {
