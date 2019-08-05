@@ -12,12 +12,4 @@ open class TransacConPipe(dsName: String) : AbstractConPipe(dsName) {
         con.autoCommit = false
         callback(TransacConnector(con))
     }
-
-    override fun commit(con: Connection?) {
-        // do nothing
-    }
-
-    override fun rollback(con: Connection?) {
-        // do nothing
-    }
 }
