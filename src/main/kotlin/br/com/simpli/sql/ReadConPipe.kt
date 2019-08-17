@@ -6,8 +6,8 @@ package br.com.simpli.sql
  */
 open class ReadConPipe(dsName: String) : AbstractConPipe(dsName) {
 
-    override fun <T> handle(c: (connector: AbstractConnector) -> T) = handleConnection { con ->
-        c(ReadConnector(con))
+    override fun <T> handle(callback: (connector: AbstractConnector) -> T) = handleConnection { con ->
+        callback(ReadConnector(con))
     }
 
 }
