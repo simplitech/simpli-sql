@@ -92,6 +92,11 @@ uploadArchives {
                         name 'Gil Lopes Bueno'
                         email 'gil.bueno@simpli.com.br'
                     }
+                    developer {
+                        id 'ftgibran'
+                        name 'Felipe Gibran Eleuterio Toledo'
+                        email 'felipe.gibran@simpli.com.br'
+                    }
                 }
                 scm {
                     connection 'scm:git:git://github.com/simplitech/simpli-sql.git'
