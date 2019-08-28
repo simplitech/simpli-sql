@@ -31,7 +31,7 @@ abstract class AbstractConPipe(dsName: String) {
         }
     }
 
-    abstract fun <T> handle(c: (connector: AbstractConnector) -> T): T
+    abstract fun <T> handle(callback: (connector: AbstractConnector) -> T): T
 
     protected open fun <T> handleConnection(callback: (con: Connection) -> T): T {
 

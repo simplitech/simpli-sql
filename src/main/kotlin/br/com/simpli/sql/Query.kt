@@ -15,6 +15,8 @@ open class Query {
 
     val paramsSt = ArrayList<Any?>()
 
+    private var ifNotFulfilled = false
+
     constructor()
 
     constructor(str: String?, vararg params: Any?) {
@@ -23,6 +25,8 @@ open class Query {
 
 
     fun raw(str: String?, vararg params: Any?) : Query {
+        ifNotFulfilled = false // reset the ifThen logic
+
         str?.let {
             strSt += " $str "
         }
@@ -50,6 +54,34 @@ open class Query {
                 FieldQuestionAndParams(it.first, "?", arrayListOf(it.second))
             }
         }
+    }
+
+    fun ifThen(bool: Boolean?, callback: Query.() -> Unit): Query {
+        if (bool == true) {
+            callback(this)
+        } else {
+            ifNotFulfilled = true
+        }
+        return this
+    }
+
+    fun elseIf(bool: Boolean?, callback: Query.() -> Unit): Query {
+        if (ifNotFulfilled && bool == true) {
+            ifNotFulfilled = false
+            callback(this)
+        }
+        return this
+    }
+
+    fun elseThen(callback: (Query) -> Unit) = elseIf(true, callback)
+
+    fun <T: Any> letThen(param: T?, callback: Query.(T) -> Unit): Query {
+        param?.let {
+            callback(this, it)
+        } ?: run {
+            ifNotFulfilled = true
+        }
+        return this
     }
 
     fun selectRaw(str: String?, vararg params: Any?) = raw("SELECT $str", *params)
