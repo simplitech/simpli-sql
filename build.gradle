@@ -1,5 +1,5 @@
 group 'br.com.simpli'
-version '3.0.4'
+version '3.1.0'
 
 apply plugin: 'maven'
 apply plugin: 'kotlin'
@@ -73,7 +73,7 @@ uploadArchives {
 
             pom.project {
                 name 'Simpli SQL'
-                description 'An SQL connector from Simpli.'
+                description 'Tools that makes SQL connections easier and don\'t use ORM'
                 url 'https://github.com/simplitech/simpli-sql'
                 licenses {
                     license {
@@ -83,14 +83,14 @@ uploadArchives {
                 }
                 developers {
                     developer {
-                        id 'joao.lippi'
-                        name 'Joao Pedro Lippi'
-                        email 'joao.lippi@simpli.com.br'
-                    }
-                    developer {
                         id 'gil'
                         name 'Gil Lopes Bueno'
                         email 'gil.bueno@simpli.com.br'
+                    }
+                    developer {
+                        id 'joao.lippi'
+                        name 'Joao Pedro Lippi'
+                        email 'joao.lippi@simpli.com.br'
                     }
                     developer {
                         id 'ftgibran'
