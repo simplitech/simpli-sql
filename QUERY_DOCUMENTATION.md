@@ -368,11 +368,11 @@ Resulting query when compareColumn == false: `SELECT * FROM table WHERE other = 
 ## elseIf
 executes the callback only if the boolean is true and the previous ifThen (or letThen) was not fulfilled
 ```kotlin
- * Query("SELECT * FROM table").ifThen(compareColumn) {
- *      where("column = ?", "abc")
- * }.elseIf(compareOther) {
- *      where("other = ?", 123)
- * }
+Query("SELECT * FROM table").ifThen(compareColumn) {
+     where("column = ?", "abc")
+}.elseIf(compareOther) {
+     where("other = ?", 123)
+}
 ```
 
 ## elseThen

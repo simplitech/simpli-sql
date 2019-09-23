@@ -24,7 +24,7 @@ abstract class AbstractConPipe(dsName: String) {
                 envContext = InitialContext().lookup("java:/comp/env") as Context
             }
 
-            ds = envContext!!.lookup(dsName) as DataSource
+            ds = envContext?.lookup(dsName) as DataSource
 
         } catch (ex: Exception) {
             Logger.getLogger(AbstractConPipe::class.java.name).log(Level.SEVERE, ex.message, ex)

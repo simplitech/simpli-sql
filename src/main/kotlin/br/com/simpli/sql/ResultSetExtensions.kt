@@ -9,8 +9,8 @@ import java.sql.Timestamp
  * @author gil
  */
 
-private fun ResultSet.putAlias(alias: String?, columnLabel: String): String {
-    return if (alias != null) alias + "." + columnLabel else columnLabel
+private fun putAlias(alias: String?, columnLabel: String): String {
+    return if (alias != null) "$alias.$columnLabel" else columnLabel
 }
 
 @Throws(SQLException::class)
