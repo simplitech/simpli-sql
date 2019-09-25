@@ -251,8 +251,8 @@ open class Query {
      */
     open fun whereSomeEq(value: Map<String, Any?>) = whereSomeEq(*value.toList().toTypedArray())
 
-    open fun whereEq(column: String, param: Any) = where("$column = ?", param)
-    open fun whereNotEq(column: String, param: Any) = where("$column != ?", param)
+    open fun whereEq(column: String, param: Any?) = param?.run { where("$column = ?", this) } ?: whereNull(column)
+    open fun whereNotEq(column: String, param: Any?) = param?.run { where("$column != ?", this) } ?: whereNotNull(column)
     open fun whereGt(column: String, param: Any) = where("$column > ?", param)
     open fun whereLt(column: String, param: Any) = where("$column < ?", param)
     open fun whereGtEq(column: String, param: Any) = where("$column >= ?", param)
