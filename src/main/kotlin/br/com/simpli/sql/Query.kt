@@ -127,9 +127,11 @@ open class Query {
      *
      * Query("SELECT column FROM table").where("column = ?", "abc").where("other = ?", 123)
      *
-     * SELECT column FROM table WHERE column = "abc" AND other = 123
+     * SELECT column FROM table WHERE (column = "abc") AND (other = 123)
      */
-    open fun where(str: String?, vararg params: Any?): Query {
+    open fun where(str: String?, vararg params: Any?) = whereNoWrap("(${str})", *params)
+
+    protected open fun whereNoWrap(str: String?, vararg params: Any?): Query {
         val word = if (!strSt.toUpperCase().contains("WHERE ")) "WHERE" else "AND"
         return raw("$word $str", *params)
     }
@@ -142,12 +144,12 @@ open class Query {
      *      where("other = ?", 123)
      * }
      *
-     * SELECT column FROM table WHERE (column = "abc" AND other = 123)
+     * SELECT column FROM table WHERE ((column = "abc") AND (other = 123))
      */
     open fun whereAll(callback: Query.() -> Unit): Query {
         val innerQuery = WhereAllQuery()
         callback(innerQuery)
-        return where("(").concat(innerQuery).raw(")")
+        return whereNoWrap("(").concat(innerQuery).raw(")")
     }
 
 
@@ -159,23 +161,23 @@ open class Query {
      *      where("other = ?", 123)
      * }
      *
-     * SELECT column FROM table WHERE (column = "abc" OR other = 123)
+     * SELECT column FROM table WHERE ((column = "abc") OR (other = 123))
      */
     open fun whereSome(callback: Query.() -> Unit): Query {
         val innerQuery = WhereSomeQuery()
         callback(innerQuery)
-        return where("(").concat(innerQuery).raw(")")
+        return whereNoWrap("(").concat(innerQuery).raw(")")
     }
 
     open class WhereAllQuery : Query() {
-        override fun where(str: String?, vararg params: Any?): Query {
+        override fun whereNoWrap(str: String?, vararg params: Any?): Query {
             val word = if (strSt.isEmpty()) "" else "AND"
             return raw("$word $str", *params)
         }
     }
 
     open class WhereSomeQuery : Query() {
-        override fun where(str: String?, vararg params: Any?): Query {
+        override fun whereNoWrap(str: String?, vararg params: Any?): Query {
             val word = if (strSt.isEmpty()) "" else "OR"
             return raw("$word $str", *params)
         }
@@ -197,7 +199,7 @@ open class Query {
         val params = ArrayList<Any?>()
         processed.forEach{ params.addAll(it.params) }
 
-        return where("(${processed.map { "${it.field} = ${it.question}" }.joinToString(" AND ")})",
+        return where("${processed.map { "${it.field} = ${it.question}" }.joinToString(" AND ")}",
                 *params.toTypedArray())
     }
 
@@ -232,7 +234,7 @@ open class Query {
         val params = ArrayList<Any?>()
         processed.forEach{ params.addAll(it.params) }
 
-        return where("(${processed.map { "${it.field} = ${it.question}" }.joinToString(" AND ")})",
+        return where("${processed.map { "${it.field} = ${it.question}" }.joinToString(" AND ")}",
                 *params.toTypedArray())
     }
 
@@ -557,9 +559,9 @@ open class Query {
      *      where("column = ?", columnSearch)
      * }.where("other = ?", 123)
      *
-     * columnSearch == "abc": SELECT * FROM table WHERE column = "abc" AND other = 123
+     * columnSearch == "abc": SELECT * FROM table WHERE (column = "abc") AND (other = 123)
      *
-     * compareColumn == null: SELECT * FROM table WHERE other = 123
+     * compareColumn == null: SELECT * FROM table WHERE (other = 123)
      */
     open fun <T: Any> letThen(param: T?, callback: Query.(T) -> Unit): Query {
         param?.let {
@@ -592,4 +594,12 @@ open class Query {
     }
 
     class FieldQuestionAndParams(val field: String, val question: String, val params: List<Any?>)
+
+    /**
+     * returns a string showing how the final query will be, but it is made only for testing, production queries should be constructed by a Connector
+     */
+    override fun toString(): String {
+        val paramsWithQuotesForStrings = paramsSt.map{ if (it is String) "\"${it}\"" else it }
+        return String.format(strSt.replace("?", "%s"), *paramsWithQuotesForStrings.toTypedArray())
+    }
 }
