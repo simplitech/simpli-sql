@@ -4,3 +4,4 @@ build
 out
 gradle.properties
 key.gpg
+local.properties

@@ -234,7 +234,7 @@ open class Query {
         val params = ArrayList<Any?>()
         processed.forEach{ params.addAll(it.params) }
 
-        return where("${processed.map { "${it.field} = ${it.question}" }.joinToString(" AND ")}",
+        return where("${processed.map { "${it.field} = ${it.question}" }.joinToString(" OR ")}",
                 *params.toTypedArray())
     }
 
