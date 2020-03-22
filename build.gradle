@@ -1,5 +1,5 @@
 group 'br.com.simpli'
-version '3.2.0'
+version '3.2.1'
 
 apply plugin: 'maven'
 apply plugin: 'kotlin'

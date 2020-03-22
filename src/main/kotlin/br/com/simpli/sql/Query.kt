@@ -69,6 +69,15 @@ open class Query {
     open fun selectAll() = selectRaw("*")
 
     /**
+     * select the fields by name, using an array
+     *
+     * Query().selectFields(arrayOf("column", "other")).raw("FROM table")
+     *
+     * SELECT column, other FROM table
+     */
+    open fun selectFields(columns: Array<String>) = selectRaw(columns.joinToString())
+
+    /**
      * select the fields by name
      *
      * Query().select("column", "other").raw("FROM table")
@@ -264,7 +273,7 @@ open class Query {
     open fun whereBetween(column: String, p1: Any, p2: Any) = where("$column BETWEEN ? AND ?", p1, p2)
     open fun whereLike(column: String, param: Any) = where("$column LIKE ?", param)
     open fun whereIn(column: String, vararg param: Any?) = where("$column IN (${oddText(param.size, "?", ",")})", *param)
-    open fun whereNotIn(column: String, vararg param: Any?) = whereIn("$column NOT", param)
+    open fun whereNotIn(column: String, vararg param: Any?) = whereIn("$column NOT", *param)
 
     /**
      * simply adds "INNER JOIN" in the query

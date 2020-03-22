@@ -34,6 +34,16 @@ Query()
 ```
 Resulting query: `SELECT column, other FROM table`
 
+## selectFields
+select the fields by name, using an array
+```kotlin
+val fields = arrayOf("column", "other")
+Query()
+.selectFields(fields)
+.raw("FROM table")
+```
+Resulting query: `SELECT column, other FROM table`
+
 ## countRaw
 select counting for something
 ```kotlin

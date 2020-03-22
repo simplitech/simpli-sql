@@ -11,7 +11,7 @@ val ar = con.execute(query2).affectedRows
 gets a single row of result providing a callback to build it
 ```kotlin
 con.getOne(query) { rs ->
-    return Person(rs.getString("name"), rs.getTimestamp("birthdate"))
+    Person(rs.getString("name"), rs.getTimestamp("birthdate"))
 }
 ```
 
@@ -19,9 +19,10 @@ con.getOne(query) { rs ->
 gets a list of results providing a callback to build each row
 ```kotlin
 con.getList(query) { rs ->
-    return Person(rs.getString("name"), rs.getTimestamp("birthdate"))
+    Person(rs.getString("name"), rs.getTimestamp("birthdate"))
 }
 ```
+[You can use ResultBuilder to help you organize your model build](RESULTBUILDER_DOCUMENTATION.md)
 
 ## exist
 return true if there is any resulting row
@@ -32,7 +33,7 @@ con.exist(query)
 ## getFirstInt
 returns the first column of the first resulting row
 ```kotlin
-getFirstInt(query)
+con.getFirstInt(query)
 ```
 
 ## getIntList

@@ -3,19 +3,21 @@
 </p> 
 
 # simpli-sql
-Kotlin and Java tools that makes SQL connections easier and don't use ORM
+**You don't need to use reflection!** They are heavy to process.
+
+Simpli-SQL is a Kotlin and Java library that makes SQL operations easier and more flexible than using an ORM.
 
 ## Install
 **Gradle**
 ```
-compile group: 'br.com.simpli', name: 'simpli-sql', version: '3.0.0'
+compile group: 'br.com.simpli', name: 'simpli-sql', version: '3.2.1'
 ```
 **Maven**
 ```xml
 <dependency>
   <groupId>br.com.simpli</groupId>
   <artifactId>simpli-sql</artifactId>
-  <version>3.0.0</version>
+  <version>3.2.1</version>
 </dependency>
 ```
 
@@ -89,5 +91,9 @@ val numOfRowsAffected = con.execute(myQuery).affectedRows
 // affectedRows are the number of rows affected by the query
 ```
 
-- [Check the Query Methods documentation to understand how to build your queries](QUERY_DOCUMENTATION.md)
-- [Check the Connector Methods documentation to unserstand how to execute the query](CONNECTOR_DOCUMENTATION.md)
+# Documentation
+Really **EASY** and **QUICK** documentation
+
+- [Query documentation](QUERY_DOCUMENTATION.md) - How to build your queries
+- [Connector documentation](CONNECTOR_DOCUMENTATION.md) - How to execute the operations and retrieve the information
+- [ResultBuilder documentation](RESULTBUILDER_DOCUMENTATION.md) - How to organize your model build
