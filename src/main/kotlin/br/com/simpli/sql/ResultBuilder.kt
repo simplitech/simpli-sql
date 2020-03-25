@@ -9,10 +9,10 @@ import java.sql.Timestamp
  * @author gil
  */
 
-open class ResultBuilder(private val alias: String? = null, private val allowedColumns: Array<String>, private val rs: ResultSet) {
+open class ResultBuilder(private val allowedColumns: Array<String>, private val rs: ResultSet, private val alias: String? = null) {
 
     fun isAllowed(column: String): Boolean {
-        return allowedColumns.contains(column)
+        return allowedColumns.contains(column) || allowedColumns.contains(putAlias(column))
     }
 
     private fun putAlias(columnLabel: String): String {
