@@ -16,7 +16,7 @@ class AllTests : DaoTest("jdbc/usecaseDS", "usecase") {
                 .from("principal")
 
         val result = con.getList(query) {
-            PrincipalModel(ResultBuilder("principal", PrincipalModel.idAndEmailFields(), it))
+            PrincipalModel(ResultBuilder(PrincipalModel.idAndEmailFields(), it, "principal"))
         }
 
         assertNotNull(result)
