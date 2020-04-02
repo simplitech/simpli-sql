@@ -262,6 +262,22 @@ open class Query {
      */
     open fun whereSomeEq(value: Map<String, Any?>) = whereSomeEq(*value.toList().toTypedArray())
 
+    /**
+     * adds a WHERE with multiple conditions matching LIKE the param, only one of them needs to be equal to the specified value
+     *
+     * Query("SELECT column FROM table")
+     *  .whereSomeLikeThis(arrayOf("column", "other"), "%abc%")
+     *
+     * SELECT column FROM table WHERE (column LIKE "%abc%" OR other LIKE "%abc%")
+     */
+    open fun whereSomeLikeThis(columns: Array<String>, paramForAll: String): Query {
+        return whereSome {
+            columns.forEach {
+                whereLike(it, paramForAll)
+            }
+        }
+    }
+
     open fun whereEq(column: String, param: Any?) = param?.run { where("$column = ?", this) } ?: whereNull(column)
     open fun whereNotEq(column: String, param: Any?) = param?.run { where("$column != ?", this) } ?: whereNotNull(column)
     open fun whereGt(column: String, param: Any) = where("$column > ?", param)

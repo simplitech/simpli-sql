@@ -162,6 +162,14 @@ You can use a map as well
  Query("SELECT column FROM table").whereSomeEq(conditionsMap)
 ```
 Resulting query: `SELECT column FROM table WHERE (column = "abc" OR other = 123 OR password = SHA1("ultrasecret"))`
+ 
+## whereSomeLikeThis
+adds a WHERE with multiple conditions matching LIKE the param, only one of them needs to be equal to the specified value
+```kotlin
+Query("SELECT column FROM table")
+    .whereSomeLikeThis(arrayOf("column", "other"), "%abc%")
+```
+Resulting query: `SELECT column FROM table WHERE (column LIKE "%abc%" OR other LIKE "%abc%")`
 
 # other Where methods:
 ```kotlin

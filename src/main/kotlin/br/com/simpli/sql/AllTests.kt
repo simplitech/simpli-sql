@@ -14,6 +14,7 @@ class AllTests : DaoTest("jdbc/usecaseDS", "usecase") {
         val query = Query()
                 .selectFields(PrincipalModel.idAndEmailFields())
                 .from("principal")
+                .whereSomeLikeThis(arrayOf("textoObrigatorio", "textoFacultativo"), "%lorem%")
 
         val result = con.getList(query) {
             PrincipalModel(ResultBuilder(PrincipalModel.idAndEmailFields(), it, "principal"))
