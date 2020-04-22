@@ -1,45 +1,29 @@
 package br.com.simpli.sql
 
-import br.com.simpli.model.RespException
 import java.sql.Connection
-import java.sql.PreparedStatement
-import java.sql.ResultSet
 import java.sql.Statement
-import java.util.logging.Level
-import java.util.logging.Logger
 
 /**
  * Executes the Queries
  *
  * @author gil
  */
-open class TransacConnector(con: Connection) : AbstractConnector(con) {
+open class TransacConnector(
+        con: Connection,
+        deadlockRetries: Int = DEFAULT_DEADLOCK_RETRIES,
+        deadlockWait: Long = DEFAULT_DEADLOCK_WAIT
+) : AbstractConnector(con, deadlockRetries, deadlockWait) {
 
-    override fun execute(query: Query): GenericResult {
-
-        var statem: PreparedStatement? = null
+    override fun execute(query: Query): GenericResult = handleOperation(query, Statement.RETURN_GENERATED_KEYS) {
         val genResult = GenericResult()
-        var keys: ResultSet? = null
-        try {
-            statem = prepareStatement(con, Statement.RETURN_GENERATED_KEYS, query.strSt, *query.paramsSt.toTypedArray())
-            genResult.affectedRows = statem.executeUpdate()
+        genResult.affectedRows = it.executeUpdate()
+        val keys = it.generatedKeys
 
-            keys = statem.generatedKeys
-
-            if (keys.next()) {
-                genResult.key = keys.getLong(1)
-            }
-            closeStatementAndResult(statem, keys)
-        } catch (ex: Exception) {
-            Logger.getLogger(TransacConnector::class.java.name).log(Level.INFO, statem.toString())
-            closeStatementAndResult(statem, keys)
-            val re = RespException(lang.unexpectedError())
-            re.initCause(ex)
-            throw re
+        if (keys.next()) {
+            genResult.key = keys.getLong(1)
         }
 
-        return genResult
-
+        ResultAndResultSet(genResult, keys)
     }
 
     companion object {
