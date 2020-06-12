@@ -62,51 +62,51 @@ fun ResultSet.getDoubleOrNull(columnIndex: Int): Double? {
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getString(alias: String, columnLabel: String): String? {
+fun ResultSet.getString(alias: String?, columnLabel: String): String? {
     return getString(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getTimestamp(alias: String, columnLabel: String): Timestamp? {
+fun ResultSet.getTimestamp(alias: String?, columnLabel: String): Timestamp? {
     return getTimestamp(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getBoolean(alias: String, columnLabel: String): Boolean {
+fun ResultSet.getBoolean(alias: String?, columnLabel: String): Boolean {
     return getBoolean(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getInt(alias: String, columnLabel: String): Int {
+fun ResultSet.getInt(alias: String?, columnLabel: String): Int {
     return getInt(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getLong(alias: String, columnLabel: String): Long {
+fun ResultSet.getLong(alias: String?, columnLabel: String): Long {
     return getLong(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getDouble(alias: String, columnLabel: String): Double {
+fun ResultSet.getDouble(alias: String?, columnLabel: String): Double {
     return getDouble(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getBooleanOrNull(alias: String, columnLabel: String): Boolean? {
+fun ResultSet.getBooleanOrNull(alias: String?, columnLabel: String): Boolean? {
     return getBooleanOrNull(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getIntOrNull(alias: String, columnLabel: String): Int? {
+fun ResultSet.getIntOrNull(alias: String?, columnLabel: String): Int? {
     return getIntOrNull(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getLongOrNull(alias: String, columnLabel: String): Long? {
+fun ResultSet.getLongOrNull(alias: String?, columnLabel: String): Long? {
     return getLongOrNull(putAlias(alias, columnLabel))
 }
 
 @Throws(SQLException::class)
-fun ResultSet.getDoubleOrNull(alias: String, columnLabel: String): Double? {
+fun ResultSet.getDoubleOrNull(alias: String?, columnLabel: String): Double? {
     return getDoubleOrNull(putAlias(alias, columnLabel))
 }
