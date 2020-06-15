@@ -1,5 +1,6 @@
 package br.com.simpli.sql
 
+import java.text.SimpleDateFormat
 import java.util.*
 
 /**
@@ -624,7 +625,14 @@ open class Query {
      * returns a string showing how the final query will be, but it is made only for testing, production queries should be constructed by a Connector
      */
     override fun toString(): String {
-        val paramsWithQuotesForStrings = paramsSt.map{ if (it is String) "\"${it}\"" else it }
+        val dtFrmttr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        val paramsWithQuotesForStrings = paramsSt.map{
+            when (it) {
+                is String -> "\"${it}\""
+                is Date -> "\"${dtFrmttr.format(it)}\""
+                else -> it
+            }
+        }
         return String.format(strSt.replace("?", "%s"), *paramsWithQuotesForStrings.toTypedArray())
     }
 }

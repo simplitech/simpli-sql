@@ -4,6 +4,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
+import java.util.*
 
 @Ignore
 class AllTests : DaoTest("jdbc/usecaseDS", "usecase") {
@@ -15,6 +16,7 @@ class AllTests : DaoTest("jdbc/usecaseDS", "usecase") {
                 .selectFields(PrincipalModel.idAndEmailFields())
                 .from("principal")
                 .whereSomeLikeThis(arrayOf("textoObrigatorio", "textoFacultativo"), "%lorem%")
+                .whereLt("dataObrigatoria", Date())
 
         val result = con.getList(query) {
             PrincipalModel(ResultBuilder(PrincipalModel.idAndEmailFields(), it, "principal"))
