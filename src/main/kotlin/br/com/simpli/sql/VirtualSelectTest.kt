@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 
 
 
-class VirtualSelectTest {
+class VirtualSelectTest : DaoTest("root", "root", "localhost", 3306, "testDS", "usecase") {
 
     var dtFormat = SimpleDateFormat( "yyyy-MM-dd")
     val expectedPrincipalSelectFields = "principal.idPrincipalPk,principal.textoObrigatorio,principal.textoFacultativo,principal.decimalObrigatorio,principal.decimalFacultativo,principal.inteiroObrigatorio,principal.inteiroFacultativo,principal.booleanoObrigatorio,principal.booleanoFacultativo,principal.dataObrigatoria,principal.dataFacultativa,principal.datahoraObrigatoria,principal.datahoraFacultativa,principal.ativo,principal.email,principal.urlImagem,principal.url,principal.idGrupoDoPrincipalFk,principal.idGrupoDoPrincipalFacultativoFk,principal.unico,principal.dataCriacao,principal.dataAlteracao,principal.nome,principal.titulo,principal.cpf,principal.cnpj,principal.rg,principal.celular,principal.textoGrande,principal.snake_case,principal.preco"
@@ -24,7 +24,7 @@ class VirtualSelectTest {
                 .from(principalRm)
                 .whereEq(principalRm.idPrincipalPk, 123)
 
-        assertEquals(" SELECT $expectedPrincipalSelectFields  FROM principal  WHERE (principal.idPrincipalPk = 123) ",
+        assertEquals(" SELECT $expectedPrincipalSelectFields  FROM principal   WHERE (principal.idPrincipalPk = 123)  ",
                 vs.toString())
     }
 
@@ -33,6 +33,8 @@ class VirtualSelectTest {
         val filter = PrincipalListFilter().apply {
             orderBy = "inteiroObrigatorio"
             ascending = false
+            limit = 10
+            page = 3
             query = "lorem"
             startDataCriacao = dtFormat.parse("2018-09-09")
             endDataCriacao = dtFormat.parse("2018-09-13")
@@ -44,6 +46,9 @@ class VirtualSelectTest {
         val principalRm = PrincipalRM()
         val grupoDoPrincipalRm = GrupoDoPrincipalRM()
         val grupoDoPrincipalFacultativoRm = GrupoDoPrincipalRM("grupo_do_principal_facultativo")
+        val notUsedJoindRm = GrupoDoPrincipalRM("grupo_do_principal_not_used")
+        val usedJoindOnWhereRm = GrupoDoPrincipalRM("grupo_do_principal_used_on_where")
+        val usedOnRecapJoindRm = GrupoDoPrincipalRM("grupo_do_principal_used_on_recap_join")
 
         val vs = VirtualSelect()
                 .groupBy(principalRm.idPrincipalPk)
@@ -53,6 +58,9 @@ class VirtualSelectTest {
                 .innerJoin(grupoDoPrincipalRm, grupoDoPrincipalRm.idGrupoDoPrincipalPk, principalRm.idGrupoDoPrincipalFk)
                 .selectFields(grupoDoPrincipalFacultativoRm.selectFields)
                 .leftJoin(grupoDoPrincipalFacultativoRm, grupoDoPrincipalFacultativoRm.idGrupoDoPrincipalPk, principalRm.idGrupoDoPrincipalFacultativoFk)
+                .conditionalInnerJoin(notUsedJoindRm, notUsedJoindRm.idGrupoDoPrincipalPk, principalRm.idGrupoDoPrincipalFacultativoFk)
+                .conditionalLeftJoin(usedOnRecapJoindRm, usedOnRecapJoindRm.idGrupoDoPrincipalPk, principalRm.idGrupoDoPrincipalFacultativoFk)
+                .conditionalInnerJoin(usedJoindOnWhereRm, usedJoindOnWhereRm.idGrupoDoPrincipalPk, usedOnRecapJoindRm.idGrupoDoPrincipalPk)
                 .wherePrincipalFilter(principalRm, filter)
                 .orderAndLimitPrincipal(principalRm, filter)
                 .whereSome {
@@ -69,15 +77,20 @@ class VirtualSelectTest {
                 .whereNotNull(principalRm.textoFacultativo)
                 .whereNotIn(principalRm.idPrincipalPk, 2, 3, 4, 6, 8)
                 .whereBetween(principalRm.preco, 8, 80)
+                .whereGt(usedJoindOnWhereRm.idGrupoDoPrincipalPk, 5)
 
-        assertEquals(" SELECT $expectedPrincipalSelectFields,$expectedGrupoDoPrincipalSelectFields,${expectedGrupoDoPrincipalSelectFields.replace("grupo_do_principal", "grupo_do_principal_facultativo")} " +
+        val result = vs.toString()
+        val expected = " SELECT $expectedPrincipalSelectFields,$expectedGrupoDoPrincipalSelectFields,${expectedGrupoDoPrincipalSelectFields.replace("grupo_do_principal", "grupo_do_principal_facultativo")} " +
                 " FROM principal " +
                 " INNER JOIN grupo_do_principal  ON grupo_do_principal.idGrupoDoPrincipalPk = principal.idGrupoDoPrincipalFk " +
                 " LEFT JOIN grupo_do_principal  AS grupo_do_principal_facultativo ON grupo_do_principal_facultativo.idGrupoDoPrincipalPk = principal.idGrupoDoPrincipalFacultativoFk " +
-                " WHERE (DATE(principal.dataCriacao) >= DATE(\"2018-09-09 00:00:00\")) " +
+                " LEFT JOIN grupo_do_principal  AS grupo_do_principal_used_on_recap_join ON grupo_do_principal_used_on_recap_join.idGrupoDoPrincipalPk = principal.idGrupoDoPrincipalFacultativoFk " +
+                " INNER JOIN grupo_do_principal  AS grupo_do_principal_used_on_where ON grupo_do_principal_used_on_where.idGrupoDoPrincipalPk = grupo_do_principal_used_on_recap_join.idGrupoDoPrincipalPk " +
+                "  WHERE (DATE(principal.dataCriacao) >= DATE(\"2018-09-09 00:00:00\")) " +
                 " AND (DATE(principal.dataCriacao) <= DATE(\"2018-09-13 00:00:00\")) " +
                 " AND (principal.decimalObrigatorio >= 1.1) " +
                 " AND (principal.decimalObrigatorio <= 5.2) " +
+                " AND (grupo_do_principal_used_on_where.idGrupoDoPrincipalPk > 5) " +
                 " AND (principal.ativo = true) " +
                 " AND (principal.booleanoFacultativo != true) " +
                 " AND (DATE(principal.dataCriacao) = DATE(\"2020-01-01 00:00:00\")) " +
@@ -95,9 +108,11 @@ class VirtualSelectTest {
                         " AND (principal.decimalFacultativo < 3) " +
                     "  ) " +
                 "  ) " +
-                " GROUP BY principal.idPrincipalPk " +
-                " ORDER BY principal.inteiroObrigatorio DESC ",
-                vs.toString())
+                "  GROUP BY principal.idPrincipalPk " +
+                " ORDER BY principal.inteiroObrigatorio DESC " +
+                " LIMIT 30, 10 "
+
+        assertEquals(expected, result)
     }
 
     @Test
@@ -110,7 +125,68 @@ class VirtualSelectTest {
                 .from(principalRm)
                 .wherePrincipalFilter(principalRm, filter)
 
-        assertEquals(" SELECT COUNT(principal.idPrincipalPk)  FROM principal  WHERE (principal.ativo = true) ", vs.toString())
+        assertEquals(" SELECT COUNT(principal.idPrincipalPk)  FROM principal   WHERE (principal.ativo = true)  ", vs.toString())
+    }
+
+    @Test
+    fun build() {
+        val principalRm = PrincipalRM()
+        val grupoDoPrincipalRm = GrupoDoPrincipalRM()
+        val grupoDoPrincipalFacultativoRm = GrupoDoPrincipalRM("grupo_do_principal_facultativo")
+
+        val vs = VirtualSelect()
+                .selectFields(principalRm.selectFields)
+                .selectFields(grupoDoPrincipalRm.selectFields)
+                .selectFields(grupoDoPrincipalFacultativoRm.selectFields)
+                .from(principalRm)
+                .innerJoin(grupoDoPrincipalRm, grupoDoPrincipalRm.idGrupoDoPrincipalPk, principalRm.idGrupoDoPrincipalFk)
+                .leftJoin(grupoDoPrincipalFacultativoRm, grupoDoPrincipalFacultativoRm.idGrupoDoPrincipalPk, principalRm.idGrupoDoPrincipalFacultativoFk)
+                .limitByIndex(1, 1)
+
+        ReadConPipe("testDS").handle {
+            connector ->
+            connector.getOne(vs.toQuery()) {
+                val principal = principalRm.build(it).apply {
+                    grupoDoPrincipal = grupoDoPrincipalRm.build(it)
+                    grupoDoPrincipalFacultativo = grupoDoPrincipalFacultativoRm.build(it)
+                }
+
+                assertNotNull(principal)
+                assertNotNull(principal.grupoDoPrincipal)
+                assertNotNull(principal.grupoDoPrincipalFacultativo)
+                assertNotNull(principal.idPrincipalPk)
+                assertNotNull(principal.textoObrigatorio)
+                assertNotNull(principal.textoFacultativo)
+                assertNotNull(principal.decimalObrigatorio)
+                assertNotNull(principal.decimalFacultativo)
+                assertNotNull(principal.inteiroObrigatorio)
+                assertNotNull(principal.inteiroFacultativo)
+                assertNotNull(principal.booleanoObrigatorio)
+                assertNotNull(principal.booleanoFacultativo)
+                assertNotNull(principal.dataObrigatoria)
+                assertNotNull(principal.dataFacultativa)
+                assertNotNull(principal.datahoraObrigatoria)
+                assertNotNull(principal.datahoraFacultativa)
+                assertNotNull(principal.ativo)
+                assertNotNull(principal.email)
+                assertNotNull(principal.urlImagem)
+                assertNotNull(principal.url)
+                assertNotNull(principal.idGrupoDoPrincipalFk)
+                assertNotNull(principal.idGrupoDoPrincipalFacultativoFk)
+                assertNotNull(principal.unico)
+                assertNotNull(principal.dataCriacao)
+                assertNotNull(principal.dataAlteracao)
+                assertNotNull(principal.nome)
+                assertNotNull(principal.titulo)
+                assertNotNull(principal.cpf)
+                assertNotNull(principal.cnpj)
+                assertNotNull(principal.rg)
+                assertNotNull(principal.celular)
+                assertNotNull(principal.textoGrande)
+                assertNotNull(principal.snakeCase)
+                assertNotNull(principal.preco)
+            }
+        }
     }
 
     @Test
@@ -195,7 +271,7 @@ class VirtualSelectTest {
                 .from(principalRm)
                 .whereEq(principalRm.idPrincipalPk, 123)
 
-        assertEquals(" SELECT principal.idPrincipalPk  FROM principal  WHERE (principal.idPrincipalPk = 123) ", vs.toString())
+        assertEquals(" SELECT principal.idPrincipalPk  FROM principal   WHERE (principal.idPrincipalPk = 123)  ", vs.toString())
     }
 
     @Test
@@ -207,7 +283,7 @@ class VirtualSelectTest {
                 .whereEq(principalRm.unico, "aeiou")
                 .whereEq(principalRm.idPrincipalPk, 123)
 
-        assertEquals(" SELECT principal.unico  FROM principal  WHERE (principal.unico = \"aeiou\")  AND (principal.idPrincipalPk = 123) ", vs.toString())
+        assertEquals(" SELECT principal.unico  FROM principal   WHERE (principal.unico = \"aeiou\")  AND (principal.idPrincipalPk = 123)  ", vs.toString())
     }
 
     @Test
@@ -226,10 +302,10 @@ class VirtualSelectTest {
         val principalRm = PrincipalRM()
         val vs = VirtualSelect()
                 .select(principalRm.idPrincipalPk)
-                .from(Query("SELECT * FROM principal"), "myinner")
+                .from(Query("SELECT * FROM principal WHERE 1=1"), "myinner")
                 .whereEq(principalRm.idPrincipalPk, 123)
 
-        assertEquals(" SELECT principal.idPrincipalPk  FROM (   SELECT * FROM principal   ) myinner  WHERE (principal.idPrincipalPk = 123) ", vs.toString())
+        assertEquals(" SELECT principal.idPrincipalPk  FROM (   SELECT * FROM principal WHERE 1=1   ) myinner   WHERE (principal.idPrincipalPk = 123)  ", vs.toString())
     }
 
     private fun VirtualSelect.wherePrincipalFilter(principalRm: PrincipalRM, filter: PrincipalListFilter): VirtualSelect {
@@ -247,40 +323,6 @@ class VirtualSelectTest {
             }
         }
 
-        filter.idGrupoDoPrincipalFacultativoFk?.also {
-            if (it.isNotEmpty()) {
-                whereIn(principalRm.idGrupoDoPrincipalFacultativoFk, *it.toTypedArray())
-            }
-        }
-
-        filter.startDataObrigatoria?.also {
-            whereDateGtEq(principalRm.dataObrigatoria, it)
-        }
-        filter.endDataObrigatoria?.also {
-            whereDateLtEq(principalRm.dataObrigatoria, it)
-        }
-
-        filter.startDataFacultativa?.also {
-            whereDateGtEq(principalRm.dataFacultativa, it)
-        }
-        filter.endDataFacultativa?.also {
-            whereDateLtEq(principalRm.dataFacultativa, it)
-        }
-
-        filter.startDatahoraObrigatoria?.also {
-            whereDateGtEq(principalRm.datahoraObrigatoria, it)
-        }
-        filter.endDatahoraObrigatoria?.also {
-            whereDateLtEq(principalRm.datahoraObrigatoria, it)
-        }
-
-        filter.startDatahoraFacultativa?.also {
-            whereDateGtEq(principalRm.datahoraFacultativa, it)
-        }
-        filter.endDatahoraFacultativa?.also {
-            whereDateLtEq(principalRm.datahoraFacultativa, it)
-        }
-
         filter.startDataCriacao?.also {
             whereDateGtEq(principalRm.dataCriacao, it)
         }
@@ -288,54 +330,11 @@ class VirtualSelectTest {
             whereDateLtEq(principalRm.dataCriacao, it)
         }
 
-        filter.startDataAlteracao?.also {
-            whereDateGtEq(principalRm.dataAlteracao, it)
-        }
-        filter.endDataAlteracao?.also {
-            whereDateLtEq(principalRm.dataAlteracao, it)
-        }
-
         filter.minDecimalObrigatorio?.also {
             whereGtEq(principalRm.decimalObrigatorio, it)
         }
         filter.maxDecimalObrigatorio?.also {
             whereLtEq(principalRm.decimalObrigatorio, it)
-        }
-
-        filter.minDecimalFacultativo?.also {
-            whereGtEq(principalRm.decimalFacultativo, it)
-        }
-        filter.maxDecimalFacultativo?.also {
-            whereLtEq(principalRm.decimalFacultativo, it)
-        }
-
-        filter.minInteiroObrigatorio?.also {
-            whereGtEq(principalRm.inteiroObrigatorio, it)
-        }
-        filter.maxInteiroObrigatorio?.also {
-            whereLtEq(principalRm.inteiroObrigatorio, it)
-        }
-
-        filter.minInteiroFacultativo?.also {
-            whereGtEq(principalRm.inteiroFacultativo, it)
-        }
-        filter.maxInteiroFacultativo?.also {
-            whereLtEq(principalRm.inteiroFacultativo, it)
-        }
-
-        filter.minPreco?.also {
-            whereGtEq(principalRm.preco, it)
-        }
-        filter.maxPreco?.also {
-            whereLtEq(principalRm.preco, it)
-        }
-
-        filter.booleanoObrigatorio?.also {
-            whereEq(principalRm.booleanoObrigatorio, it)
-        }
-
-        filter.booleanoFacultativo?.also {
-            whereEq(principalRm.booleanoFacultativo, it)
         }
 
         return this
@@ -736,28 +735,6 @@ private class GrupoDoPrincipalRM(override var alias: String? = null) : Relationa
                 idGrupoDoPrincipalPk,
                 titulo
         )
-
-    val fieldsToSearch
-        get() = arrayOf(
-                idGrupoDoPrincipalPk,
-                titulo
-        )
-
-    val orderMap
-        get() = mapOf(
-                "idGrupoDoPrincipalPk" to idGrupoDoPrincipalPk,
-                "titulo" to titulo
-        )
-
-    val updateSet
-        get() = arrayOf(
-                titulo
-        )
-
-    val insertValues
-        get() = arrayOf(
-                titulo
-        )
 }
 
 class PrincipalListFilter {
@@ -767,29 +744,8 @@ class PrincipalListFilter {
     var orderBy: String? = null
     var ascending: Boolean? = null
     var idGrupoDoPrincipalFk: List<Long>? = null
-    var idGrupoDoPrincipalFacultativoFk: List<Long>? = null
-    var startDataObrigatoria: Date? = null
-    var endDataObrigatoria: Date? = null
-    var startDataFacultativa: Date? = null
-    var endDataFacultativa: Date? = null
-    var startDatahoraObrigatoria: Date? = null
-    var endDatahoraObrigatoria: Date? = null
-    var startDatahoraFacultativa: Date? = null
-    var endDatahoraFacultativa: Date? = null
     var startDataCriacao: Date? = null
     var endDataCriacao: Date? = null
-    var startDataAlteracao: Date? = null
-    var endDataAlteracao: Date? = null
     var minDecimalObrigatorio: Double? = null
     var maxDecimalObrigatorio: Double? = null
-    var minDecimalFacultativo: Double? = null
-    var maxDecimalFacultativo: Double? = null
-    var minInteiroObrigatorio: Long? = null
-    var maxInteiroObrigatorio: Long? = null
-    var minInteiroFacultativo: Long? = null
-    var maxInteiroFacultativo: Long? = null
-    var minPreco: Double? = null
-    var maxPreco: Double? = null
-    var booleanoObrigatorio: Boolean? = null
-    var booleanoFacultativo: Boolean? = null
 }

@@ -2,6 +2,8 @@ package br.com.simpli.sql
 
 import java.sql.ResultSet
 import java.sql.Timestamp
+import java.util.*
+import kotlin.collections.ArrayList
 
 class VirtualSelect : VirtualWhere() {
     private var allSelectFields: Array<VirtualColumn<*>> = emptyArray()
@@ -209,18 +211,20 @@ class VirtualSelect : VirtualWhere() {
         val notUsedConditionalJoins = ArrayList<VirtualJoin>()
         val usedJoins = ArrayList<VirtualJoin>()
 
+        // separating joins that are used (except on other joins) from unused
         allJoins.forEach {
-            if (it.conditional && (allSelectFields.any { s -> s.aliasOrTable == it.rm.aliasOrTable }
-                            || allCountFields.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
-                            || allGroupBy.any { s -> s.aliasOrTable == it.rm.aliasOrTable }
-                            || allOrderBy.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
-                            || hasWhereWithAliasOrTable(it.rm.aliasOrTable))) {
+            if (it.conditional && (!allSelectFields.any { s -> s.aliasOrTable == it.rm.aliasOrTable }
+                            && !allCountFields.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
+                            && !allGroupBy.any { s -> s.aliasOrTable == it.rm.aliasOrTable }
+                            && !allOrderBy.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
+                            && !hasWhereWithAliasOrTable(it.rm.aliasOrTable))) {
                 notUsedConditionalJoins.add(it)
             } else {
                 usedJoins.add(it)
             }
         }
 
+        // making a recap by searching unused joins on used joins references
         var i = 0
         while (i < usedJoins.size) {
             val used = usedJoins[i]
@@ -235,7 +239,22 @@ class VirtualSelect : VirtualWhere() {
             i++
         }
 
-        usedJoins.forEach {
+        // sorting the joins by reference, so the query doesn't bug
+        val sortedJoins = ArrayList<VirtualJoin>()
+        i = 0
+        while (i < usedJoins.size) {
+            val used = usedJoins[i]
+            if (used.columnTo.aliasOrTable == fromRM?.aliasOrTable || sortedJoins.any { it.rm.aliasOrTable == used.columnTo.aliasOrTable }) {
+                sortedJoins.add(used)
+                usedJoins.removeAt(i)
+                i = 0
+            } else {
+                i++
+            }
+        }
+
+        // building
+        sortedJoins.forEach {
             if (it.inner) {
                 query.innerJoin(it.rm.table, it.rm.alias, it.columnFrom.toString(), it.columnTo.toString())
             } else {
@@ -351,74 +370,79 @@ open class VirtualWhere {
         return this
     }
 
-    protected fun buildWhere(query: Query) {
+    protected fun buildWhere(query: Query, useSameQuery: Boolean = false) {
+        val whereQuery = if (useSameQuery) query else Query() // making a separated where to avoid bugs on WHERE/AND (issue #19)
         allVirtualWhereItemOneParam.forEach {
             when (it.type) {
-                VirtualWhereTypeOneParam.Gt -> query.whereGt(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.Lt -> query.whereLt(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.GtEq -> query.whereGtEq(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.LtEq -> query.whereLtEq(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.DateGt -> query.whereDateGt(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.DateLt -> query.whereDateLt(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.DateGtEq -> query.whereDateGtEq(it.column.toString(), it.param)
-                VirtualWhereTypeOneParam.DateLtEq -> query.whereDateLtEq(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.Gt -> whereQuery.whereGt(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.Lt -> whereQuery.whereLt(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.GtEq -> whereQuery.whereGtEq(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.LtEq -> whereQuery.whereLtEq(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.DateGt -> whereQuery.whereDateGt(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.DateLt -> whereQuery.whereDateLt(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.DateGtEq -> whereQuery.whereDateGtEq(it.column.toString(), it.param)
+                VirtualWhereTypeOneParam.DateLtEq -> whereQuery.whereDateLtEq(it.column.toString(), it.param)
             }
         }
 
         allVirtualWhereItemNullableParam.forEach {
             when (it.type) {
-                VirtualWhereTypeNullableParam.Eq -> query.whereEq(it.column.toString(), it.param)
-                VirtualWhereTypeNullableParam.NotEq -> query.whereNotEq(it.column.toString(), it.param)
-                VirtualWhereTypeNullableParam.DateEq -> query.whereDateEq(it.column.toString(), it.param)
+                VirtualWhereTypeNullableParam.Eq -> whereQuery.whereEq(it.column.toString(), it.param)
+                VirtualWhereTypeNullableParam.NotEq -> whereQuery.whereNotEq(it.column.toString(), it.param)
+                VirtualWhereTypeNullableParam.DateEq -> whereQuery.whereDateEq(it.column.toString(), it.param)
             }
         }
 
         allVirtualWhereItemNoParam.forEach {
             when (it.type) {
-                VirtualWhereTypeNoParam.Null -> query.whereNull(it.column.toString())
-                VirtualWhereTypeNoParam.NotNull -> query.whereNotNull(it.column.toString())
+                VirtualWhereTypeNoParam.Null -> whereQuery.whereNull(it.column.toString())
+                VirtualWhereTypeNoParam.NotNull -> whereQuery.whereNotNull(it.column.toString())
             }
         }
 
         allVirtualWhereItemVarargParam.forEach {
             when (it.type) {
-                VirtualWhereTypeVarargParam.In -> query.whereIn(it.column.toString(), *it.param)
-                VirtualWhereTypeVarargParam.NotIn -> query.whereNotIn(it.column.toString(), *it.param)
+                VirtualWhereTypeVarargParam.In -> whereQuery.whereIn(it.column.toString(), *it.param)
+                VirtualWhereTypeVarargParam.NotIn -> whereQuery.whereNotIn(it.column.toString(), *it.param)
             }
         }
 
         allVirtualWhereBetween.forEach {
-            query.whereBetween(it.column.toString(), it.param1, it.param2)
+            whereQuery.whereBetween(it.column.toString(), it.param1, it.param2)
         }
 
         allVirtualWhereSomeLikeThis.forEach {
-            query.whereSomeLikeThis(it.columns.map { col -> col.toString() }.toTypedArray(), it.param)
+            whereQuery.whereSomeLikeThis(it.columns.map { col -> col.toString() }.toTypedArray(), it.param)
         }
 
         allWhereAll.forEach {
             val inner = VirtualWhere()
             it(inner)
-            query.whereAll {
-                inner.buildWhere(this)
+            whereQuery.whereAll {
+                inner.buildWhere(this, true)
             }
         }
 
         allWhereSome.forEach {
             val inner = VirtualWhere()
             it(inner)
-            query.whereSome {
-                inner.buildWhere(this)
+            whereQuery.whereSome {
+                inner.buildWhere(this, true)
             }
+        }
+
+        if (!useSameQuery) {
+            query.concat(whereQuery)
         }
     }
 
     protected fun hasWhereWithAliasOrTable(aliasOrTable: String): Boolean {
-        return allVirtualWhereItemOneParam.any { w -> w.column.toString() == aliasOrTable }
-                || allVirtualWhereItemNullableParam.any { w -> w.column.toString() == aliasOrTable }
-                || allVirtualWhereItemNoParam.any { w -> w.column.toString() == aliasOrTable }
-                || allVirtualWhereItemVarargParam.any { w -> w.column.toString() == aliasOrTable }
-                || allVirtualWhereBetween.any { w -> w.column.toString() == aliasOrTable }
-                || allVirtualWhereSomeLikeThis.any { w -> w.columns.any { c -> c.toString() == aliasOrTable } }
+        return allVirtualWhereItemOneParam.any { w -> w.column.aliasOrTable == aliasOrTable }
+                || allVirtualWhereItemNullableParam.any { w -> w.column.aliasOrTable == aliasOrTable }
+                || allVirtualWhereItemNoParam.any { w -> w.column.aliasOrTable == aliasOrTable }
+                || allVirtualWhereItemVarargParam.any { w -> w.column.aliasOrTable == aliasOrTable }
+                || allVirtualWhereBetween.any { w -> w.column.aliasOrTable == aliasOrTable }
+                || allVirtualWhereSomeLikeThis.any { w -> w.columns.any { c -> c.aliasOrTable == aliasOrTable } }
                 || allWhereAll.any {
             val inner = VirtualWhere()
             it(inner)
@@ -482,7 +506,7 @@ class VirtualBuilder(val column: VirtualColumn<*>, val rs: ResultSet) {
         return if (null is T) {
             when (T::class) {
                 String::class -> string as T
-                Timestamp::class -> timestamp as T
+                Date::class -> timestamp as T
                 Boolean::class -> booleanOrNull as T
                 Int::class -> intOrNull as T
                 Long::class -> longOrNull as T
