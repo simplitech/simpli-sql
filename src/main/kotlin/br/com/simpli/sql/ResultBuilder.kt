@@ -8,7 +8,7 @@ import java.sql.Timestamp
  *
  * @author gil
  */
-
+@Deprecated(message = "You should try creating a RelationalMapper")
 open class ResultBuilder(private val allowedColumns: Array<String>, private val rs: ResultSet, private val alias: String? = null) {
 
     fun isAllowed(column: String): Boolean {
