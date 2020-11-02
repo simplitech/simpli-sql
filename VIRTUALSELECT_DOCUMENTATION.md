@@ -94,5 +94,11 @@ val myTableRm = MyTableRM()
 val vs = VirtualSelect()
         .selectRaw("COUNT(%s)", myTableRm.idMyTablePk, "idAmount")
         .from(myTableRm)
-        .whereRaw("%s >= %s", myTableRm.text, myTableRm.otherColumn)
-``` 
+        .whereRaw("%s >= %s * ?", arrayOf(myTableRm.idMyTablePk, myTableRm.otherColumn), 34)
+```
+The above code will generate this method:
+```mysql
+SELECT COUNT(myTable.idMyTablePk) AS idAmount
+FROM myTable
+WHERE myTable.idMyTablePk >= myTable.otherColumn * 34
+```
