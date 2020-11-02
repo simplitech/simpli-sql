@@ -96,4 +96,7 @@ Really **EASY** and **QUICK** documentation
 
 - [Query documentation](QUERY_DOCUMENTATION.md) - How to build your queries
 - [Connector documentation](CONNECTOR_DOCUMENTATION.md) - How to execute the operations and retrieve the information
-- [ResultBuilder documentation](RESULTBUILDER_DOCUMENTATION.md) - How to organize your model build
+- [VirtualSelect documentation](VIRTUALSELECT_DOCUMENTATION.md) - How to build smarter queries
+
+Deprecated:
+- [ResultBuilder documentation](RESULTBUILDER_DOCUMENTATION.md)

@@ -15,8 +15,6 @@ open class Query {
 
     val paramsSt = ArrayList<Any?>()
 
-    private var ifNotFulfilled = false
-
     constructor()
 
     /**
@@ -38,8 +36,6 @@ open class Query {
      * SELECT * FROM table WHERE column = "abc" AND other = 123
      */
     open fun raw(str: String?, vararg params: Any?) : Query {
-        ifNotFulfilled = false // reset the ifThen logic
-
         str?.let {
             strSt += " $str "
         }
@@ -281,10 +277,15 @@ open class Query {
 
     open fun whereEq(column: String, param: Any?) = param?.run { where("$column = ?", this) } ?: whereNull(column)
     open fun whereNotEq(column: String, param: Any?) = param?.run { where("$column != ?", this) } ?: whereNotNull(column)
+    open fun whereDateEq(column: String, param: Any?) = param?.run { where("DATE($column) = DATE(?)", this) } ?: whereNull(column)
     open fun whereGt(column: String, param: Any) = where("$column > ?", param)
     open fun whereLt(column: String, param: Any) = where("$column < ?", param)
     open fun whereGtEq(column: String, param: Any) = where("$column >= ?", param)
     open fun whereLtEq(column: String, param: Any) = where("$column <= ?", param)
+    open fun whereDateGt(column: String, param: Any) = where("DATE($column) > DATE(?)", param)
+    open fun whereDateLt(column: String, param: Any) = where("DATE($column) < DATE(?)", param)
+    open fun whereDateGtEq(column: String, param: Any) = where("DATE($column) >= DATE(?)", param)
+    open fun whereDateLtEq(column: String, param: Any) = where("DATE($column) <= DATE(?)", param)
     open fun whereNull(column: String) = where("$column IS NULL")
     open fun whereNotNull(column: String) = where("$column IS NOT NULL")
     open fun whereBetween(column: String, p1: Any, p2: Any) = where("$column BETWEEN ? AND ?", p1, p2)
@@ -308,7 +309,8 @@ open class Query {
      *
      * SELECT column FROM table INNER JOIN othertable ON primarykey = foreignkey
      */
-    open fun innerJoin(otherTable: String, oneColumn: String, otherColumn: String) = innerJoinRaw("$otherTable ON $oneColumn = $otherColumn")
+    open fun innerJoin(otherTable: String, oneColumn: String, otherColumn: String) = innerJoin(otherTable, null, oneColumn, otherColumn)
+    fun innerJoin(otherTable: String, alias: String?, oneColumn: String, otherColumn: String) = innerJoinRaw("$otherTable ${alias?.let { it -> " AS $it" } ?: ""} ON $oneColumn = $otherColumn")
 
     /**
      * simply adds "LEFT JOIN" in the query
@@ -326,7 +328,8 @@ open class Query {
      *
      * SELECT column FROM table LEFT JOIN othertable ON primarykey = foreignkey
      */
-    open fun leftJoin(otherTable: String, oneColumn: String, otherColumn: String) = leftJoinRaw("$otherTable ON $oneColumn = $otherColumn")
+    open fun leftJoin(otherTable: String, oneColumn: String, otherColumn: String) = leftJoin(otherTable, null, oneColumn, otherColumn)
+    open fun leftJoin(otherTable: String, alias: String?, oneColumn: String, otherColumn: String) = leftJoinRaw("$otherTable ${alias?.let { it -> " AS $it" } ?: ""} ON $oneColumn = $otherColumn")
 
     /**
      * simply adds "GROUP BY" in the query
@@ -344,29 +347,12 @@ open class Query {
      *
      * SELECT COUNT(column) FROM table GROUP BY column, other
      */
-    open fun groupBy(vararg columns: String) = groupByRaw(columns.joinToString())
-
-    /**
-     * simply adds "HAVING" in the query
-     *
-     * Query("SELECT COUNT(column) AS countt FROM table GROUP BY column").having("countt > 3")
-     *
-     * SELECT COUNT(column) AS countt FROM table GROUP BY column HAVING countt > 3
-     */
-    open fun having(str: String?, vararg param: Any?) = raw("HAVING $str", *param)
-
-    open fun havingEq(column: String, param: Any) = having("$column = ?", param)
-    open fun havingNotEq(column: String, param: Any) = having("$column != ?", param)
-    open fun havingGt(column: String, param: Any) = having("$column > ?", param)
-    open fun havingLt(column: String, param: Any) = having("$column < ?", param)
-    open fun havingGtEq(column: String, param: Any) = having("$column >= ?", param)
-    open fun havingLtEq(column: String, param: Any) = having("$column <= ?", param)
-    open fun havingNull(column: String) = having("$column IS NULL")
-    open fun havingNotNull(column: String) = having("$column IS NOT NULL")
-    open fun havingBetween(column: String, p1: Any, p2: Any) = having("$column BETWEEN ? AND ?", p1, p2)
-    open fun havingLike(column: String, param: Any) = having("$column LIKE ?", param)
-    open fun havingIn(column: String, vararg param: Any?) = having("$column IN (${oddText(param.size, "?", ",")})", *param)
-    open fun havingNotIn(column: String, vararg param: Any?) = havingIn("$column NOT", param)
+    open fun groupBy(vararg columns: String): Query {
+        if (columns.isNotEmpty()) {
+            return groupByRaw(columns.joinToString())
+        }
+        return this
+    }
 
     /**
      * simply adds "ORDER BY" in the query
@@ -398,6 +384,20 @@ open class Query {
      * SELECT column FROM table ORDER BY column DESC
      */
     open fun orderByAsc(column: String, asc: Boolean? = true) = orderBy(column, if (asc != false) "ASC" else "DESC")
+
+    /**
+     * add multiple order by
+     *
+     * Query("SELECT column FROM table").orderBy("column" to true, "other" to false)
+     *
+     * SELECT column FROM table ORDER BY column ASC, other DESC
+     */
+    open fun orderBy(vararg columnAndAsc: Pair<String, Boolean?>): Query {
+        if (columnAndAsc.isNotEmpty()) {
+            return orderByRaw(columnAndAsc.joinToString(",") { "${it.first} ${if (it.second != false) "ASC" else "DESC"}" })
+        }
+        return this
+    }
 
     /**
      * adds limit with index and size
@@ -525,78 +525,6 @@ open class Query {
      * ?,?,?
      */
     open fun oddText(size: Int, text: String, separator: String) = List(size) { text }.toTypedArray().joinToString(separator)
-
-    /**
-     * execute the callback only if the boolean is true, util to avoid breaking the Query chain
-     *
-     * Query("SELECT * FROM table").ifThen(compareColumn) {
-     *      where("column = ?", "abc")
-     * }.where("other = ?", 123)
-     *
-     * compareColumn == true: SELECT * FROM table WHERE column = "abc" AND other = 123
-     *
-     * compareColumn == false: SELECT * FROM table WHERE other = 123
-     */
-    open fun ifThen(bool: Boolean?, callback: Query.() -> Unit): Query {
-        if (bool == true) {
-            callback(this)
-        } else {
-            ifNotFulfilled = true
-        }
-        return this
-    }
-
-    /**
-     * executes the callback only if the boolean is true and the previous ifThen (or letThen) was not fulfilled
-     *
-     * Query("SELECT * FROM table").ifThen(compareColumn) {
-     *      where("column = ?", "abc")
-     * }.elseIf(compareOther) {
-     *      where("other = ?", 123)
-     * }
-     */
-    open fun elseIf(bool: Boolean?, callback: Query.() -> Unit): Query {
-        if (ifNotFulfilled && bool == true) {
-            ifNotFulfilled = false
-            callback(this)
-        }
-        return this
-    }
-
-    /**
-     * executes the callback only if the previous ifThen (or letThen) was not fulfilled
-     *
-     * Query("SELECT * FROM table").ifThen(compareColumn) {
-     *      where("column = ?", "abc")
-     * }.elseThen {
-     *      where("other = ?", 123)
-     * }
-     *
-     * compareColumn == true: SELECT * FROM table WHERE column = "abc"
-     *
-     * compareColumn == false: SELECT * FROM table WHERE other = 123
-     */
-    open fun elseThen(callback: (Query) -> Unit) = elseIf(true, callback)
-
-    /**
-     * execute the callback only if the variable is not null, util to avoid breaking the Query chain
-     *
-     * Query("SELECT * FROM table").letThen(columnSearch) {
-     *      where("column = ?", columnSearch)
-     * }.where("other = ?", 123)
-     *
-     * columnSearch == "abc": SELECT * FROM table WHERE (column = "abc") AND (other = 123)
-     *
-     * compareColumn == null: SELECT * FROM table WHERE (other = 123)
-     */
-    open fun <T: Any> letThen(param: T?, callback: Query.(T) -> Unit): Query {
-        param?.let {
-            callback(this, it)
-        } ?: run {
-            ifNotFulfilled = true
-        }
-        return this
-    }
 
     /**
      * utility function to organize name and value pairs that may have an inner query
