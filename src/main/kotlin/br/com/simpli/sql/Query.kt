@@ -111,17 +111,6 @@ open class Query {
     open fun count(vararg columns: String) = countRaw(columns.joinToString())
 
     /**
-     * select count and fields
-     *
-     * Query().selectCountsAndFields(mapOf("column" to "columnAlias", "other" to null), arrayOf("masuna", "otra")).raw("FROM table")
-     *
-     * SELECT COUNT(column) AS columnAlias, COUNT(other), masuna, otra FROM table
-     */
-    open fun selectCountsAndFields(countColumnsAndAlias: Map<String, String?>, fieldsToSelect: Array<String>) = selectRaw((
-            countColumnsAndAlias.map { "COUNT(${it.key})${it.value?.let { alias -> " AS $alias" } ?: ""}" } + fieldsToSelect
-            ).joinToString(","))
-
-    /**
      * simply adds "FROM" in the query
      *
      * Query("SELECT column").from("table")

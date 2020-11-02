@@ -5,8 +5,9 @@ Before Learning how to use VirtualSelect you should take a look at [Query docume
 While the Query class concatenates the query string as the methods are being called, the VirtualSelect uses a different approach,
 storing all the required fields and operations individually.
 
-Since VirtualSelect stores things individually, we can do things in a smarter way, but sadly we can't write raw queries.
-So if you need to make a raw query you should use the Query class.
+Since VirtualSelect stores things individually, we can do things in a smarter way, but sadly there is some tiny limitations
+on raw queries.
+So there is some specific operations that works only with the Query class.
 
 # Learn by example
 
@@ -84,3 +85,14 @@ val myTable = con.getOne(query) {
     myTableRm.build(it)
 }
 ```
+
+## Raw queries
+It is important to use raw methods correctly so that VirtualSelect can correctly understand which columns are being used
+```kotlin
+val myTableRm = MyTableRM()
+
+val vs = VirtualSelect()
+        .selectRaw("COUNT(%s)", myTableRm.idMyTablePk, "idAmount")
+        .from(myTableRm)
+        .whereRaw("%s >= %s", myTableRm.text, myTableRm.otherColumn)
+``` 

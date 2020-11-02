@@ -7,7 +7,7 @@ import kotlin.collections.ArrayList
 
 class VirtualSelect : VirtualWhere() {
     private var allSelectFields: Array<VirtualColumn<*>> = emptyArray()
-    private var allCountFields: Array<VirtualCount> = emptyArray()
+    private var allSelectRaws: Array<VirtualSelectRaw> = emptyArray()
     private var fromRM: RelationalMapper<*>? = null
     private var fromQuery: Query? = null
     private var fromQueryName: String? = null
@@ -25,8 +25,8 @@ class VirtualSelect : VirtualWhere() {
 
     fun select(vararg columns: VirtualColumn<*>) = selectFields(columns)
 
-    fun countField(column: VirtualColumn<*>, alias: String? = null): VirtualSelect {
-        allCountFields += VirtualCount(column, alias)
+    fun selectRaw(raw: String, column: VirtualColumn<*>, alias: String? = null): VirtualSelect {
+        allSelectRaws += VirtualSelectRaw(raw, column, alias)
         return this
     }
 
@@ -177,6 +177,11 @@ class VirtualSelect : VirtualWhere() {
         return this
     }
 
+    override fun whereRaw(raw: String, columns: Array<out VirtualColumn<*>>, vararg param: Any?): VirtualSelect {
+        super.whereRaw(raw, columns, *param)
+        return this
+    }
+
     // endregion
 
     // region build query methods
@@ -194,7 +199,13 @@ class VirtualSelect : VirtualWhere() {
     }
 
     private fun buildSelect(query: Query) {
-        query.selectCountsAndFields(allCountFields.map { it.column.toString() to it.alias }.toMap(), allSelectFields.map { it.toString() }.toTypedArray())
+        query.selectRaw(
+                (
+                        allSelectRaws.map {
+                            "${it.raw.format(it.column.toString())}${it.alias?.let { alias -> " AS $alias" } ?: ""}"
+                        } +
+                        allSelectFields.map { it.toString() }
+                ).joinToString(","))
     }
 
     private fun buildFrom(query: Query) {
@@ -214,7 +225,7 @@ class VirtualSelect : VirtualWhere() {
         // separating joins that are used (except on other joins) from unused
         allJoins.forEach {
             if (it.conditional && (!allSelectFields.any { s -> s.aliasOrTable == it.rm.aliasOrTable }
-                            && !allCountFields.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
+                            && !allSelectRaws.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
                             && !allGroupBy.any { s -> s.aliasOrTable == it.rm.aliasOrTable }
                             && !allOrderBy.any { s -> s.column.aliasOrTable == it.rm.aliasOrTable }
                             && !hasWhereWithAliasOrTable(it.rm.aliasOrTable))) {
@@ -297,7 +308,7 @@ class VirtualColumn<T>(val table: String, val alias: String?, val column: String
     }
 }
 
-class VirtualCount(val column: VirtualColumn<*>, val alias: String? = null)
+class VirtualSelectRaw(val raw: String, val column: VirtualColumn<*>, val alias: String? = null)
 private class VirtualJoin(val rm: RelationalMapper<*>, val columnFrom: VirtualColumn<*>, val columnTo: VirtualColumn<*>, val inner: Boolean = true, val conditional: Boolean = false)
 private class VirtualOrder(val column: VirtualColumn<*>, val asc: Boolean)
 
@@ -310,6 +321,7 @@ open class VirtualWhere {
     private var allVirtualWhereItemVarargParam: Array<VirtualWhereItemVarargParam> = emptyArray()
     private var allVirtualWhereBetween: Array<VirtualWhereBetween> = emptyArray()
     private var allVirtualWhereSomeLikeThis: Array<VirtualWhereSomeLikeThis> = emptyArray()
+    private var allVirtualWhereRaw: Array<VirtualWhereRaw> = emptyArray()
 
     open fun whereAll(callback: VirtualWhere.() -> Unit): VirtualWhere {
         allWhereAll += callback
@@ -370,6 +382,11 @@ open class VirtualWhere {
         return this
     }
 
+    open fun whereRaw(raw: String, columns: Array<out VirtualColumn<*>>, vararg param: Any?): VirtualWhere {
+        allVirtualWhereRaw += VirtualWhereRaw(raw, columns, *param)
+        return this
+    }
+
     protected fun buildWhere(query: Query, useSameQuery: Boolean = false) {
         val whereQuery = if (useSameQuery) query else Query() // making a separated where to avoid bugs on WHERE/AND (issue #19)
         allVirtualWhereItemOneParam.forEach {
@@ -415,6 +432,10 @@ open class VirtualWhere {
             whereQuery.whereSomeLikeThis(it.columns.map { col -> col.toString() }.toTypedArray(), it.param)
         }
 
+        allVirtualWhereRaw.forEach {
+            whereQuery.where(it.raw.format(*it.columns.map { col -> col.toString() }.toTypedArray()), *it.param)
+        }
+
         allWhereAll.forEach {
             val inner = VirtualWhere()
             it(inner)
@@ -443,6 +464,7 @@ open class VirtualWhere {
                 || allVirtualWhereItemVarargParam.any { w -> w.column.aliasOrTable == aliasOrTable }
                 || allVirtualWhereBetween.any { w -> w.column.aliasOrTable == aliasOrTable }
                 || allVirtualWhereSomeLikeThis.any { w -> w.columns.any { c -> c.aliasOrTable == aliasOrTable } }
+                || allVirtualWhereRaw.any { w -> w.columns.any { c -> c.aliasOrTable == aliasOrTable } }
                 || allWhereAll.any {
             val inner = VirtualWhere()
             it(inner)
@@ -462,6 +484,7 @@ private class VirtualWhereItemNoParam(val column: VirtualColumn<*>, val type: Vi
 private class VirtualWhereItemVarargParam(val column: VirtualColumn<*>, val type: VirtualWhereTypeVarargParam, vararg val param: Any?)
 private class VirtualWhereBetween(val column: VirtualColumn<*>, val param1: Any, val param2: Any)
 private class VirtualWhereSomeLikeThis(val columns: Array<out VirtualColumn<*>>, val param: String)
+private class VirtualWhereRaw(val raw: String, val columns: Array<out VirtualColumn<*>>, vararg val param: Any?)
 
 private enum class VirtualWhereTypeOneParam {
     Gt,

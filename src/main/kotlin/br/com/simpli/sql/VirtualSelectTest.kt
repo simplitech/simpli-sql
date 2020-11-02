@@ -29,6 +29,20 @@ class VirtualSelectTest : DaoTest("root", "root", "localhost", 3306, "testDS", "
     }
 
     @Test
+    fun whereRaw() {
+        val principalRm = PrincipalRM()
+
+        val vs = VirtualSelect()
+                .selectFields(principalRm.selectFields)
+                .from(principalRm)
+                .whereRaw("SUM(%s) >= ?", arrayOf(principalRm.decimalObrigatorio), 123)
+                .groupBy(principalRm.celular)
+
+        assertEquals(" SELECT $expectedPrincipalSelectFields  FROM principal   WHERE (SUM(principal.decimalObrigatorio) >= 123)   GROUP BY principal.celular ",
+                vs.toString())
+    }
+
+    @Test
     fun getList() {
         val filter = PrincipalListFilter().apply {
             orderBy = "inteiroObrigatorio"
@@ -116,16 +130,18 @@ class VirtualSelectTest : DaoTest("root", "root", "localhost", 3306, "testDS", "
     }
 
     @Test
-    fun count() {
+    fun selectRaw() {
         val filter = PrincipalListFilter()
 
         val principalRm = PrincipalRM()
         val vs = VirtualSelect()
-                .countField(principalRm.idPrincipalPk)
+                .select(principalRm.booleanoFacultativo)
+                .selectRaw("COUNT(%s)", principalRm.idPrincipalPk, "hey")
+                .selectRaw("SUM(%s)", principalRm.idPrincipalPk)
                 .from(principalRm)
                 .wherePrincipalFilter(principalRm, filter)
 
-        assertEquals(" SELECT COUNT(principal.idPrincipalPk)  FROM principal   WHERE (principal.ativo = true)  ", vs.toString())
+        assertEquals(" SELECT COUNT(principal.idPrincipalPk) AS hey,SUM(principal.idPrincipalPk),principal.booleanoFacultativo  FROM principal   WHERE (principal.ativo = true)  ", vs.toString())
     }
 
     @Test
