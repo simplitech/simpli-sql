@@ -5,7 +5,7 @@
 # simpli-sql
 **You don't need to use reflection!** They are heavy to process.
 
-Simpli-SQL is a Kotlin and Java library that makes SQL operations easier and more flexible than using an ORM.
+Simpli-SQL is a Kotlin and Java library that makes SQL operations easier and more flexible without the use of Reflections.
 
 ## Install
 **Gradle**
